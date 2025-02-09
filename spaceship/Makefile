@@ -1,7 +1,7 @@
 #
 # Project config
 #
-PROJECT_NAME = game-of-life-raylib
+PROJECT_NAME = spaceship-raylib
 CC           = x86_64-w64-mingw32-gcc
 
 # 
@@ -38,7 +38,7 @@ FLAGS = -Wall -Werror -Wextra -Wfloat-equal -Wuninitialized -Winit-self -Wno-mis
 #
 # Directories
 #
-RAYLIB_DIR = #included with w54devkit
+RAYLIB_DIR = #included with w64devkit
 SRC_DIR    = src
 INC_DIR    = include
 LIB_DIR    = libs $(RAYLIB_DIR)
