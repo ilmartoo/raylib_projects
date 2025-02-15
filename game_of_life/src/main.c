@@ -13,7 +13,7 @@
 
 #define ASSETS_DIR "assets/"
 #define IMAGES_DIR ASSETS_DIR "images/"
-#define GetImagePath(image_name) IMAGES_DIR image_name
+#define GET_IMAGE_PATH(image_name) IMAGES_DIR image_name
 
 #define INIT_SCREEN_H 600
 #define INIT_SCREEN_W 1200
@@ -166,7 +166,7 @@ int main()
 
     InitWindow(INIT_SCREEN_W, INIT_SCREEN_H, gameTitle);
     SetWindowState(FLAG_WINDOW_RESIZABLE);
-    SetWindowIcon(LoadImage(GetImagePath("snake-icon.png")));
+    SetWindowIcon(LoadImage(GET_IMAGE_PATH("snake-icon.png")));
     SetWindowMinSize(INIT_BOARD_W, INIT_BOARD_H);
     SetTargetFPS(60);
 
