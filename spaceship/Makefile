@@ -38,16 +38,17 @@ FLAGS = -Wall -Werror -Wextra -Wfloat-equal -Wuninitialized -Winit-self -Wno-mis
 #
 # Directories
 #
-RAYLIB_DIR = #included with w64devkit
-SRC_DIR    = src
-INC_DIR    = include
-LIB_DIR    = libs $(RAYLIB_DIR)
-BIN_DIR    = bin
+RAYLIB_DIR  = #included with w64devkit
+SRC_DIR     = src
+SRC_SUBDIRS = $(shell find $(SRC_DIR) -type d)
+INC_DIRS    = $(SRC_SUBDIRS)
+LIB_DIRS    = libs $(RAYLIB_DIR)
+BIN_DIR     = bin
 
 #
 # Files
 #
-SOURCES    = $(wildcard $(SRC_DIR)/*.c)
+SOURCES    = $(shell find $(SRC_DIR) -type f -name "*.c")
 OBJECTS    = $(SOURCES:$(SRC_DIR)/%.c=%.o)
 EXECUTABLE = $(PROJECT_NAME)
 #
@@ -79,16 +80,16 @@ REL_FLAGS = -O3 -s -Wl,-subsystem,windows
 #
 # Includes and libs (must be put AFTER source files)
 #
-INC_PATHS = $(addprefix -I ,$(INC_DIR))
-LIB_PATHS = $(addprefix -L ,$(LIB_DIR))
+INC_PATHS = $(addprefix -I ,$(INC_DIRS))
+LIB_PATHS = $(addprefix -L ,$(LIB_DIRS))
 LIBS      = -lraylib -lopengl32 -lgdi32 -lwinmm -lm
 
-.PHONY: clean prep debug
+.PHONY: clean debug
 
 #
 # Debug build
 #
-debug: prep $(DBG_EXECUTABLE)
+debug: prep-debug $(DBG_EXECUTABLE)
 
 $(DBG_EXECUTABLE): $(DBG_OBJECTS)
 	$(CC) $(FLAGS) $(DBG_FLAGS) -o $(DBG_EXECUTABLE) $^ $(INC_PATHS) $(LIB_PATHS) $(LIBS)
@@ -99,7 +100,7 @@ $(DBG_DIR)/%.o: $(SRC_DIR)/%.c
 #
 # Release build
 #
-release: prep $(REL_EXECUTABLE)
+release: prep-release $(REL_EXECUTABLE)
 
 $(REL_EXECUTABLE): $(REL_OBJECTS)
 	$(CC) $(FLAGS) $(REL_FLAGS) -o $(REL_EXECUTABLE) $^ $(INC_PATHS) $(LIB_PATHS) $(LIBS)
@@ -122,8 +123,11 @@ run-release: release
 #
 # Other rules
 #
-prep:
-	mkdir -p $(DBG_DIR) $(REL_DIR)
+prep-release:
+	mkdir -p $(REL_DIR) $(SRC_SUBDIRS:$(SRC_DIR)/%=$(REL_DIR)/%)
+
+prep-debug:
+	mkdir -p $(DBG_DIR) $(SRC_SUBDIRS:$(SRC_DIR)/%=$(DBG_DIR)/%)
 
 clean:
 	rm -rf $(BIN_DIR)
