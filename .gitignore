@@ -56,3 +56,6 @@ dkms.conf
 dir/
 bin/
 dump/
+
+# Editors
+.vscode/
