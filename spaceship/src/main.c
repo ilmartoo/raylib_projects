@@ -1,10 +1,12 @@
+#include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include "raylib.h"
 #include "types.h"
-#include "helpers.h"
 #include "debug.h"
 #include "arena.h"
+#include "string.h"
+#include "entity_pool.h"
 
 //
 // Configuration
@@ -12,9 +14,9 @@
 //
 #pragma region
 
-#define ASSETS_DIR "assets/"
-#define IMAGES_DIR ASSETS_DIR "images/"
-#define AUDIO_DIR ASSETS_DIR "audio/"
+#define ASSETS_DIR                 "assets/"
+#define IMAGES_DIR                 ASSETS_DIR "images/"
+#define AUDIO_DIR                  ASSETS_DIR "audio/"
 #define GET_ASSET_PATH(asset_name) (ASSETS_DIR asset_name)
 #define GET_IMAGE_PATH(image_name) (IMAGES_DIR image_name)
 #define GET_AUDIO_PATH(audio_name) (AUDIO_DIR audio_name)
@@ -47,7 +49,8 @@ f32 vector_distance(Vector2 origin, Vector2 pos)
 //
 #pragma region
 
-typedef struct Controls {
+typedef struct Controls
+{
     u32 left;
     u32 right;
     u32 up;
@@ -55,125 +58,133 @@ typedef struct Controls {
     u32 shoot;
 } Controls;
 
-typedef enum SpaceshipType {
+typedef struct Positional
+{
+    Vector2 size;
+    Vector2 coords;
+} Positional;
+
+typedef struct Movable
+{
+    Vector2 speed;
+} Movable;
+
+typedef struct AbilityCooldown
+{
+    f64 available_at; // The time at which the ability will be available again
+    f64 wait_time;    // Cooldown of the ability
+} AbilityCooldown;
+
+typedef enum SpaceshipType
+{
     SPACESHIP_FRIENDLY_BASE = 0,
-#define SPACESHIP_FRIENDLY_BASE_TEXTURE_POS ((Rectangle) { 320, 0, 96, 96 })
+#define SPACESHIP_FRIENDLY_BASE_TEXTURE_POS ((Rectangle){320, 0, 96, 96})
     SPACESHIP_FRIENDLY_UPGRADED,
-#define SPACESHIP_FRIENDLY_UPGRADED_TEXTURE_POS ((Rectangle) { 304, 384, 96, 96 })
+#define SPACESHIP_FRIENDLY_UPGRADED_TEXTURE_POS ((Rectangle){304, 384, 96, 96})
     SPACESHIP_ENEMY_BASE,
-#define SPACESHIP_ENEMY_BASE_TEXTURE_POS ((Rectangle) { 400, 256, 96, 96 })
+#define SPACESHIP_ENEMY_BASE_TEXTURE_POS ((Rectangle){400, 256, 96, 96})
     SPACESHIP_ENEMY_UPGRADED
-#define SPACESHIP_ENEMY_UPGRADED_TEXTURE_POS ((Rectangle) { 512, 0, 96, 96 })
+#define SPACESHIP_ENEMY_UPGRADED_TEXTURE_POS ((Rectangle){512, 0, 96, 96})
 } SpaceshipType;
 
-typedef struct Spaceship {
-    // Characteristics
-    f32 attack_speed;
-    Vector2 movement_speed;
-    // Beam shooting
-    f32 beam_speed;
-    f32 beam_damage;
-    f32 beam_range;
-    Vector2 beam_size;
-    // World representation
-    Vector2 size;
-    Vector2 pos;
+typedef struct Spaceship
+{
+    SpaceshipType type;
+    Movable movement;
+    Positional pos;
 } Spaceship;
 
-#define SPACESHIP_ATTACK_SPEED_BASE 0.5f
-#define SPACESHIP_MOVEMENT_SPEED_BASE ((Vector2) { 250, 200 })
-#define SPACESHIP_SIZE_BASE ((Vector2) { 20, 20 })
+#define SPACESHIP_MOVEMENT_SPEED_BASE ((Vector2){250, 200})
+#define SPACESHIP_SIZE_BASE           ((Vector2){20, 20})
 
-typedef struct Beam {
-    // Characteristics
-    bool is_ally;
+typedef enum BeamType
+{
+    BEAM_PLAYER = 0,
+#define BEAM_PLAYER_TEXTURE_POS ((Rectangle){608, 0, 64, 127})
+    BEAM_ENEMY,
+#define BEAM_ENEMY_TEXTURE_POS ((Rectangle){688, 160, 64, 127})
+} BeamType;
+
+typedef struct Beam
+{
     u32 damage;
-    f32 movement_speed;
-    // Deseasing
-    Vector2 origin;
     f32 range;
-    bool alive;
-    // World representation
-    Vector2 size;
-    Vector2 pos;
+    Vector2 origin;
+    /* ... */
+    BeamType type;
+    Movable movement;
+    Positional pos;
 } Beam;
 
-#define BEAM_SPEED_BASE 450
-#define BEAM_DAMAGE_BASE 10
-#define BEAM_RANGE_BASE 200
-#define BEAM_SIZE_BASE ((Vector2) { 4, 30 })
+typedef struct ShootAbility
+{
+    f32 damage;
+    f32 range;
+    f32 proyectile_speed;
+    Vector2 proyectile_size;
+    AbilityCooldown cooldown;
+} ShootAbility;
 
-#define FRIENDLY_BEAM_TEXTURE_POS ((Rectangle) { 608, 0, 64, 127 })
-#define ENEMY_BEAM_TEXTURE_POS ((Rectangle) { 688, 160, 64, 127 })
+#define SHOOTING_ABILITY_DAMAGE_BASE           10
+#define SHOOTING_ABILITY_RANGE_BASE            200
+#define SHOOTING_ABILITY_PROYECTILE_SPEED_BASE 450
+#define SHOOTING_ABILITY_PROYECTILE_SIZE_BASE  ((Vector2){4, 30})
 
-typedef struct Player {
-    // Spaceship
+typedef struct Player
+{
     Spaceship spaceship;
-    SpaceshipType spaceship_type;
-    // Cooldowns
-    f32 attack_cooldown;
-    // Player
+    ShootAbility attack;
+    /* Player */
     u8 player_number;
     Controls controls;
 } Player;
 
-typedef struct Enemy {
-    // Spaceship
+#define PLAYER_ATTACK_SPEED_BASE 0.1f
+
+typedef struct Enemy
+{
     Spaceship spaceship;
-    SpaceshipType spaceship_type;
-    // Cooldowns
-    f32 attack_cooldown;
-    // Alive
-    bool alive;
+    ShootAbility attack;
 } Enemy;
 
-typedef struct EntityPool {
-    Arena arena;
-    usize length;
-#ifdef DEBUG
-    usize alive_count;
-#endif
-} EntityPool;
-
-typedef struct GameState {
-    f32 delta_seconds;
-    struct {
+typedef struct GameState
+{
+    struct
+    {
+        f64 elapsed;
+        f32 delta;
+    } time;
+    // Entity pools
+    struct
+    {
         EntityPool players;
         EntityPool enemies;
-        EntityPool beams;
-    } entities;
-    struct {
+        EntityPool player_beams;
+        EntityPool enemy_beams;
+    } pools;
+    struct
+    {
         Rectangle spaceships[4];
-        Rectangle beam_friendly;
-        Rectangle beam_enemy;
+        Rectangle beams[2];
     } sprite_locations;
     Texture2D spritesheet;
 } GameState;
 
-GameState* state;
+GameState state = {0};
 
 #pragma endregion
 
 //
-// Util Functions
-// :utils :functions
+// Util Functions And Macros
+// :utils :functions :macros
 //
 #pragma region
 
-Player* get_player(u32 index)
-{
-    return &((Player*)state->entities.players.arena.stack)[index];
-}
+Rectangle get_spaceship_type_location(SpaceshipType type) { return state.sprite_locations.spaceships[type]; }
 
-Enemy* get_enemy(u32 index)
-{
-    return &((Enemy*)state->entities.enemies.arena.stack)[index];
-}
+Rectangle get_beam_type_location(BeamType type) { return state.sprite_locations.beams[type]; }
 
-Beam* get_beam(u32 index)
-{
-    return &((Beam*)state->entities.beams.arena.stack)[index];
-}
+f32 adjust_to_delta(f32 weight) { return weight * state.time.delta; }
 
 #pragma endregion
 
@@ -183,129 +194,76 @@ Beam* get_beam(u32 index)
 //
 #pragma region
 
-EntityPool create_entity_pool(void)
+Spaceship create_spaceship(Vector2 pos, SpaceshipType type)
 {
-    return (EntityPool) {
-#ifdef DEBUG
-        .alive_count = 0,
-#endif
-        .arena = ArenaCreate(),
-        .length = 0
-    };
+    return (Spaceship){
+        .type = type, .movement = {.speed = SPACESHIP_MOVEMENT_SPEED_BASE}, .pos = {.size = SPACESHIP_SIZE_BASE, .coords = pos}};
 }
 
-void free_entity_pool(EntityPool* pool)
+Beam create_beam(BeamType type, f32 damage, f32 range, f32 movement_speed, Vector2 size, Vector2 pos)
 {
-    ArenaClear(&pool->arena);
+    return (Beam){.damage = damage,
+                  .range = range,
+                  .origin = pos,
+                  .type = type,
+                  .movement = {.speed = {0, movement_speed}},
+                  .pos = {.size = size, .coords = pos}};
 }
 
-Spaceship create_spaceship(Vector2 pos)
+Beam *generate_player_beam(f32 damage, f32 range, f32 movement_speed, Vector2 size, Vector2 pos)
 {
-    return (Spaceship) {
-        .attack_speed = SPACESHIP_ATTACK_SPEED_BASE,
-        .movement_speed = SPACESHIP_MOVEMENT_SPEED_BASE,
-
-        .beam_speed = BEAM_SPEED_BASE,
-        .beam_damage = BEAM_DAMAGE_BASE,
-        .beam_range = BEAM_RANGE_BASE,
-        .beam_size = BEAM_SIZE_BASE,
-
-        .pos = pos,
-        .size = SPACESHIP_SIZE_BASE
-    };
+    Beam beam = create_beam(BEAM_PLAYER, damage, range, movement_speed, size, pos);
+    return entity_pool_add(&state.pools.player_beams, &beam);
 }
 
-Beam create_beam(bool is_ally, f32 movement_speed, f32 damage, f32 range, Vector2 size, Vector2 pos)
+Beam *generate_enemy_beam(f32 damage, f32 range, f32 movement_speed, Vector2 size, Vector2 pos)
 {
-    return (Beam) {
-        .is_ally = is_ally,
-        .damage = damage,
-        .movement_speed = movement_speed,
-
-        .origin = pos,
-        .range = range,
-        .alive = true,
-
-        .size = size,
-        .pos = pos
-    };
+    Beam beam = create_beam(BEAM_ENEMY, damage, range, movement_speed, size, pos);
+    return entity_pool_add(&state.pools.enemy_beams, &beam);
 }
 
-Beam* generate_entity_beam(bool is_ally, f32 movement_speed, f32 damage, f32 range, Vector2 size, Vector2 pos)
+Player *generate_entity_player(Vector2 pos)
 {
-    Beam new_beam = create_beam(is_ally, movement_speed, damage, range, size, pos);
-    Beam* beam = NULL;
-
-    EntityPool* pool = &state->entities.beams;
-    for (u32 idx = 0; idx < pool->length; ++idx) {
-        beam = get_beam(idx);
-        if (!beam->alive) {
-            *beam = new_beam;
-            break;
-        }
-        beam = NULL;
-    }
-
-    if (beam == NULL) {
-        beam = ArenaPushType(&state->entities.beams.arena, Beam);
-        *beam = new_beam;
-        ++state->entities.beams.length;
-    }
-
-#ifdef DEBUG
-    ++state->entities.beams.alive_count;
-#endif
-    return beam;
-}
-
-Player* generate_entity_player(Vector2 pos)
-{
-    Player* player = ArenaPushType(&state->entities.players.arena, Player);
-    *player = (Player) {
-        .spaceship = create_spaceship(pos),
-        .spaceship_type = SPACESHIP_FRIENDLY_BASE,
-
-        .attack_cooldown = 0,
-
-        .player_number = state->entities.players.length,
-        .controls = {
-            .left = KEY_LEFT,
-            .right = KEY_RIGHT,
-            .up = KEY_UP,
-            .down = KEY_DOWN,
-            .shoot = KEY_SPACE }
-    };
-    ++state->entities.players.length;
-    return player;
+    Player player = {.spaceship = create_spaceship(pos, SPACESHIP_FRIENDLY_BASE),
+                     .attack =
+                         {
+                             .damage = SHOOTING_ABILITY_DAMAGE_BASE,
+                             .range = SHOOTING_ABILITY_RANGE_BASE,
+                             .proyectile_speed = SHOOTING_ABILITY_PROYECTILE_SPEED_BASE,
+                             .proyectile_size = SHOOTING_ABILITY_PROYECTILE_SIZE_BASE,
+                             .cooldown = {.wait_time = PLAYER_ATTACK_SPEED_BASE, .available_at = 0},
+                         },
+                     .player_number = state.pools.players.chunk_count,
+                     .controls = {.left = KEY_LEFT, .right = KEY_RIGHT, .up = KEY_UP, .down = KEY_DOWN, .shoot = KEY_SPACE}};
+    return entity_pool_add(&state.pools.players, &player);
 }
 
 void init_global_state(void)
 {
     Image spritesheet_image = LoadImage(GET_IMAGE_PATH("spritesheet.png"));
 
-    state = new (GameState);
-    *state = (GameState) {
-        .delta_seconds = 0,
-        .entities = {
-            .players = create_entity_pool(),
-            .enemies = create_entity_pool(),
-            .beams = create_entity_pool() },
-        .sprite_locations = { .spaceships = { SPACESHIP_FRIENDLY_BASE_TEXTURE_POS, SPACESHIP_FRIENDLY_UPGRADED_TEXTURE_POS, SPACESHIP_ENEMY_BASE_TEXTURE_POS, SPACESHIP_ENEMY_UPGRADED_TEXTURE_POS }, .beam_friendly = FRIENDLY_BEAM_TEXTURE_POS, .beam_enemy = ENEMY_BEAM_TEXTURE_POS },
-        .spritesheet = LoadTextureFromImage(spritesheet_image)
-    };
+    state = (GameState){.time = {.elapsed = GetTime(), .delta = GetFrameTime()},
+                        .pools = {.players = entity_pool_create_type(Player),
+                                  .enemies = entity_pool_create_type(Enemy),
+                                  .player_beams = entity_pool_create_type(Beam),
+                                  .enemy_beams = entity_pool_create_type(Beam)},
+                        .sprite_locations = {.spaceships = {SPACESHIP_FRIENDLY_BASE_TEXTURE_POS, SPACESHIP_FRIENDLY_UPGRADED_TEXTURE_POS,
+                                                            SPACESHIP_ENEMY_BASE_TEXTURE_POS, SPACESHIP_ENEMY_UPGRADED_TEXTURE_POS},
+                                             .beams = {BEAM_PLAYER_TEXTURE_POS, BEAM_ENEMY_TEXTURE_POS}},
+                        .spritesheet = LoadTextureFromImage(spritesheet_image)};
 
     UnloadImage(spritesheet_image);
 
-    generate_entity_player((Vector2) { 10, 10 });
+    generate_entity_player((Vector2){10, 10});
 }
 
-void free_global_state(void)
+void clear_global_state(void)
 {
-    free_entity_pool(&state->entities.players);
-    free_entity_pool(&state->entities.enemies);
-    free_entity_pool(&state->entities.beams);
-    UnloadTexture(state->spritesheet);
-    free(state);
+    entity_pool_release(&state.pools.players);
+    entity_pool_release(&state.pools.enemies);
+    entity_pool_release(&state.pools.player_beams);
+    entity_pool_release(&state.pools.enemy_beams);
+    UnloadTexture(state.spritesheet);
 }
 
 #pragma endregion
@@ -316,6 +274,10 @@ void free_global_state(void)
 //
 #pragma region
 
+bool cooldown_up(AbilityCooldown cooldown) { return cooldown.available_at <= state.time.elapsed; }
+
+void cooldown_update(AbilityCooldown *cooldown) { cooldown->available_at = state.time.elapsed + cooldown->wait_time; }
+
 #pragma endregion
 
 //
@@ -324,72 +286,76 @@ void free_global_state(void)
 //
 #pragma region
 
-bool beam_entity_move(Beam* b)
+bool beam_entity_move(Beam *b)
 {
-    if ((float)fabs(vector_distance(b->pos, b->origin)) < b->range) {
-        b->pos.y -= b->movement_speed * state->delta_seconds;
+    if ((float)fabs(vector_distance(b->pos.coords, b->origin)) < b->range)
+    {
+        b->pos.coords.x -= adjust_to_delta(b->movement.speed.x);
+        b->pos.coords.y -= adjust_to_delta(b->movement.speed.y);
         return true;
     }
     return false;
 }
 
-void player_entity_move(Player* player)
+void player_entity_move(Player *player)
 {
-    Spaceship* ship = &player->spaceship;
+    Spaceship *ship = &player->spaceship;
 
     bool isLeft = IsKeyDown(player->controls.left);
     bool isRight = IsKeyDown(player->controls.right);
     bool isUp = IsKeyDown(player->controls.up);
     bool isDown = IsKeyDown(player->controls.down);
 
-    if (isLeft != isRight) {
-        f32 x = ship->movement_speed.x * state->delta_seconds;
-        ship->pos.x += isLeft ? -x : x;
+    if (isLeft != isRight)
+    {
+        f32 x = adjust_to_delta(ship->movement.speed.x);
+        ship->pos.coords.x += isLeft ? -x : x;
     }
-    if (isUp != isDown) {
-        f32 y = ship->movement_speed.y * state->delta_seconds;
-        ship->pos.y += isUp ? -y : y;
+    if (isUp != isDown)
+    {
+        f32 y = adjust_to_delta(ship->movement.speed.y);
+        ship->pos.coords.y += isUp ? -y : y;
     }
 }
 
-void player_entity_shoot(Player* player)
+void player_entity_shoot(Player *player)
 {
-    if (player->attack_cooldown <= 0) {
+    if (cooldown_up(player->attack.cooldown))
+    {
         bool isShooting = IsKeyDown(player->controls.shoot);
 
-        if (isShooting) {
+        if (isShooting)
+        {
             Spaceship ship = player->spaceship;
-            Vector2 beam_pos = {
-                ship.pos.x + ((ship.size.x - ship.beam_size.x) / 2),
-                ship.pos.y - ship.beam_size.y + (ship.size.y / 2)
-            };
-            generate_entity_beam(true, ship.beam_speed, ship.beam_damage, ship.beam_range, ship.beam_size, beam_pos);
-            player->attack_cooldown = player->spaceship.attack_speed;
+            Vector2 beam_pos = {ship.pos.coords.x + ((ship.pos.size.x - player->attack.proyectile_size.x) / 2),
+                                ship.pos.coords.y - player->attack.proyectile_size.y + (ship.pos.size.y / 2)};
+            generate_player_beam(player->attack.damage, player->attack.range, player->attack.proyectile_speed,
+                                 player->attack.proyectile_size, beam_pos);
+            cooldown_update(&player->attack.cooldown);
         }
     }
 }
 
 void update_beam_entities(void)
 {
-    for (u32 idx = 0; idx < state->entities.beams.length; ++idx) {
-        Beam* beam = get_beam(idx);
-        if (beam->alive) {
-            beam->alive = beam_entity_move(beam);
-#ifdef DEBUG
-            if (!beam->alive) {
-                --state->entities.beams.alive_count;
-            }
-#endif
-        }
+    EntityPool *pool;
+    entity_pool_for_each_entity(pool = &state.pools.player_beams, Beam, itr)
+    {
+        if (!beam_entity_move(itr.entity)) { entity_pool_pop(pool, itr.index); }
+    }
+
+    entity_pool_for_each_entity(pool = &state.pools.enemy_beams, Beam, itr)
+    {
+        if (!beam_entity_move(itr.entity)) { entity_pool_pop(pool, itr.index); }
     }
 }
 
 void update_player_entities(void)
 {
-    for (u32 idx = 0; idx < state->entities.players.length; ++idx) {
-        Player* player = get_player(idx);
-        player_entity_move(player);
-        player_entity_shoot(player);
+    entity_pool_for_each_entity(&state.pools.players, Player, itr)
+    {
+        player_entity_move(itr.entity);
+        player_entity_shoot(itr.entity);
     }
 }
 
@@ -401,80 +367,32 @@ void update_player_entities(void)
 //
 #pragma region
 
-void draw_spaceship(Spaceship s, Rectangle texture_pos)
+void draw_spaceship(Spaceship s)
 {
-    DrawTexturePro(
-        state->spritesheet,
-        texture_pos,
-        (Rectangle) {
-            s.pos.x,
-            s.pos.y,
-            s.size.x,
-            s.size.y },
-        (Vector2) { 0 },
-        0,
-        WHITE);
+    DrawTexturePro(state.spritesheet, get_spaceship_type_location(s.type),
+                   (Rectangle){s.pos.coords.x, s.pos.coords.y, s.pos.size.x, s.pos.size.y}, (Vector2){0}, 0, WHITE);
 }
 
-void draw_beam(Beam b, Rectangle texture_pos)
+void draw_beam(Beam b)
 {
-    DrawTexturePro(
-        state->spritesheet,
-        texture_pos,
-        (Rectangle) {
-            b.pos.x,
-            b.pos.y,
-            b.size.x,
-            b.size.y },
-        (Vector2) { 0 },
-        0,
-        WHITE);
+    DrawTexturePro(state.spritesheet, get_beam_type_location(b.type),
+                   (Rectangle){b.pos.coords.x, b.pos.coords.y, b.pos.size.x, b.pos.size.y}, (Vector2){0}, 0, WHITE);
 }
 
 void draw_players(void)
 {
-    for (u32 idx = 0; idx < state->entities.players.length; ++idx) {
-        Player player = *get_player(idx);
-        draw_spaceship(player.spaceship, state->sprite_locations.spaceships[player.spaceship_type]);
-    }
+    entity_pool_for_each_entity(&state.pools.players, Player, itr) { draw_spaceship(itr.entity->spaceship); }
 }
 
 void draw_alive_enemies(void)
 {
-    for (u32 idx = 0; idx < state->entities.enemies.length; ++idx) {
-        Enemy enemy = *get_enemy(idx);
-        if (enemy.alive) {
-            draw_spaceship(enemy.spaceship, state->sprite_locations.spaceships[enemy.spaceship_type]);
-        }
-    }
+    entity_pool_for_each_entity(&state.pools.enemies, Enemy, itr) { draw_spaceship(itr.entity->spaceship); }
 }
 
 void draw_alive_beams(void)
 {
-    for (u32 idx = 0; idx < state->entities.beams.length; ++idx) {
-        Beam beam = *get_beam(idx);
-        if (beam.alive) {
-            draw_beam(beam, beam.is_ally ? state->sprite_locations.beam_friendly : state->sprite_locations.beam_enemy);
-        }
-    }
-}
-
-#pragma endregion
-
-//
-// Cooldowns
-// :cooldown
-//
-#pragma region
-
-void reduce_cooldowns_players(void)
-{
-    for (u32 idx = 0; idx < state->entities.players.length; ++idx) {
-        Player* player = get_player(idx);
-        if (player->attack_cooldown > 0) {
-            player->attack_cooldown -= state->delta_seconds;
-        }
-    }
+    entity_pool_for_each_entity(&state.pools.player_beams, Beam, itr) { draw_beam(*itr.entity); }
+    entity_pool_for_each_entity(&state.pools.enemy_beams, Beam, itr) { draw_beam(*itr.entity); }
 }
 
 #pragma endregion
@@ -487,24 +405,20 @@ void reduce_cooldowns_players(void)
 
 void setup_window()
 {
-    string gameTitle = "Spaceship";
+    const char *game_title = "Spaceship";
     Image icon = LoadImage(GET_IMAGE_PATH("spaceship-icon.png"));
 
-    InitWindow(INIT_SCREEN_W, INIT_SCREEN_H, gameTitle);
+    InitWindow(INIT_SCREEN_W, INIT_SCREEN_H, game_title);
     SetWindowState(FLAG_WINDOW_RESIZABLE);
     SetWindowIcon(icon);
 
     UnloadImage(icon);
 }
 
-void update_delta(void)
+void update_times(void)
 {
-    state->delta_seconds = GetFrameTime();
-}
-
-void reduce_cooldowns(void)
-{
-    reduce_cooldowns_players();
+    state.time.elapsed = GetTime();
+    state.time.delta = GetFrameTime();
 }
 
 void update_entities(void)
@@ -523,29 +437,25 @@ void do_drawing(void)
     draw_alive_beams();
 
 #ifdef DEBUG
-    f32 xo = 5,
-        yo = 5,
-        wo = 100,
-        ho = 100,
-        thick = 2,
-        font_size = 10,
-        margin = 3,
-        x = xo + thick + margin,
-        y = yo + thick + margin;
+    f32 xo = 5, yo = 5, wo = 100, ho = 100, thick = 2, font_size = 10, margin = 3, x = xo + thick + margin, y = yo + thick + margin;
 
-    DrawRectangleLinesEx((Rectangle) { xo, yo, wo, ho }, thick, GREEN);
-    DrawRectangle(xo + thick, yo + thick, wo - thick - thick, ho - thick - thick, (Color) { WHITE.r, WHITE.g, WHITE.b, 63 });
+    DrawRectangleLinesEx((Rectangle){xo, yo, wo, ho}, thick, GREEN);
+    DrawRectangle(xo + thick, yo + thick, wo - thick - thick, ho - thick - thick, Fade(WHITE, 0.25));
 
     DrawText("Debug info", x, y, font_size, WHITE);
 
     y += font_size + margin;
     DrawText(TextFormat("FPS: %d", GetFPS()), x, y, font_size, WHITE);
 
+    y += font_size + margin;
+    DrawText(TextFormat("Enemies [Total]: %lld", entity_pool_chunk_count(state.pools.enemies)), x, y, font_size, WHITE);
     y += font_size;
-    DrawText(TextFormat("Beams [Total]: %lld", state->entities.beams.length), x, y, font_size, WHITE);
+    DrawText(TextFormat("Enemies [Alive]: %lld", entity_pool_entity_count(state.pools.enemies)), x, y, font_size, WHITE);
 
+    y += font_size + margin;
+    DrawText(TextFormat("Beams [Total]: %lld", entity_pool_chunk_count(state.pools.player_beams)), x, y, font_size, WHITE);
     y += font_size;
-    DrawText(TextFormat("Beams [Alive]: %lld", state->entities.beams.alive_count), x, y, font_size, WHITE);
+    DrawText(TextFormat("Beams [Alive]: %lld", entity_pool_entity_count(state.pools.player_beams)), x, y, font_size, WHITE);
 #endif
     EndDrawing();
 }
@@ -559,15 +469,14 @@ int main()
 
     while (!WindowShouldClose()) // Detect window close button or ESC key
     {
-        update_delta();
-        reduce_cooldowns();
+        update_times();
         update_entities();
         // check_collisions();
         do_drawing();
     }
 
     CloseWindow();
-    free_global_state();
+    clear_global_state();
 
     return 0;
 }
