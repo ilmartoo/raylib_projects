@@ -2,10 +2,10 @@
 #ifndef __ILMARTO_TYPES_H_
 #define __ILMARTO_TYPES_H_
 
-#include <stddef.h>  // uintptr_t, ptrdiff_t, size_t
-#include <uchar.h>   // char16_t
-#include <stdint.h>  // int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t, uint32_t, uint64_t
 #include <stdbool.h> // bool, true, false
+#include <stddef.h>  // uintptr_t, ptrdiff_t, size_t
+#include <stdint.h>  // int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t, uint32_t, uint64_t
+#include <uchar.h>   // char16_t
 
 typedef char byte; // Byte type
 
@@ -38,10 +38,5 @@ typedef double f64; // 64 bit float type
 #define reserve(data_type) (data_type *)malloc(sizeof(data_type))
 // Allocates a new array of elements in the heap
 #define reserve_array(data_type, number_of_elements) (data_type *)malloc(sizeof(data_type) * number_of_elements)
-
-// Retrieves the size of an array
-#define countof(array) (size_t)(sizeof(array) / sizeof(*(array)))
-// Retrieves the size of a string
-#define lengthof(str) (countof(str) - 1)
 
 #endif // __ILMARTO_TYPES_H_
