@@ -1,25 +1,21 @@
-#include <stdlib.h>
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "arena.h"
+#include "data_object_pool.h"
+#include "debug.h"
+#include "debug_panel.h"
+#include "files.h"
+#include "memory_utils.h"
 #include "raylib.h"
 #include "types.h"
-#include "debug.h"
-#include "arena.h"
-#include "string.h"
-#include "entity_pool.h"
 
 //
 // Configuration
 // :macros
 //
 #pragma region
-
-#define ASSETS_DIR                 "assets/"
-#define IMAGES_DIR                 ASSETS_DIR "images/"
-#define AUDIO_DIR                  ASSETS_DIR "audio/"
-#define GET_ASSET_PATH(asset_name) (ASSETS_DIR asset_name)
-#define GET_IMAGE_PATH(image_name) (IMAGES_DIR image_name)
-#define GET_AUDIO_PATH(audio_name) (AUDIO_DIR audio_name)
 
 #define INIT_SCREEN_H 600
 #define INIT_SCREEN_W 1200
@@ -97,24 +93,24 @@ typedef struct Spaceship
 #define SPACESHIP_MOVEMENT_SPEED_BASE ((Vector2){250, 200})
 #define SPACESHIP_SIZE_BASE           ((Vector2){20, 20})
 
-typedef enum BeamType
+typedef enum ProyectileType
 {
-    BEAM_PLAYER = 0,
-#define BEAM_PLAYER_TEXTURE_POS ((Rectangle){608, 0, 64, 127})
-    BEAM_ENEMY,
-#define BEAM_ENEMY_TEXTURE_POS ((Rectangle){688, 160, 64, 127})
-} BeamType;
+    PROYECTILE_PLAYER = 0,
+#define PROYECTILE_PLAYER_TEXTURE_POS ((Rectangle){608, 0, 64, 127})
+    PROYECTILE_ENEMY,
+#define PROYECTILE_ENEMY_TEXTURE_POS ((Rectangle){688, 160, 64, 127})
+} ProyectileType;
 
-typedef struct Beam
+typedef struct Proyectile
 {
     u32 damage;
     f32 range;
     Vector2 origin;
     /* ... */
-    BeamType type;
+    ProyectileType type;
     Movable movement;
     Positional pos;
-} Beam;
+} Proyectile;
 
 typedef struct ShootAbility
 {
@@ -147,6 +143,12 @@ typedef struct Enemy
     ShootAbility attack;
 } Enemy;
 
+typedef enum FontFamily
+{
+    FONT_ATKINSON_REGULAR = 0,
+    FONT_ATKINSON_BOLD,
+} FontFamily;
+
 typedef struct GameState
 {
     struct
@@ -154,20 +156,23 @@ typedef struct GameState
         f64 elapsed;
         f32 delta;
     } time;
-    // Entity pools
+    /* ... */
     struct
     {
-        EntityPool players;
-        EntityPool enemies;
-        EntityPool player_beams;
-        EntityPool enemy_beams;
+        DataObjectPool players;
+        DataObjectPool enemies;
+        DataObjectPool player_proyectiles;
+        DataObjectPool enemy_proyectiles;
     } pools;
+    /* ... */
     struct
     {
+        Texture2D texture;
         Rectangle spaceships[4];
-        Rectangle beams[2];
-    } sprite_locations;
-    Texture2D spritesheet;
+        Rectangle proyectiles[2];
+    } spritesheet;
+    /* ... */
+    Font fonts[2];
 } GameState;
 
 GameState state = {0};
@@ -180,9 +185,11 @@ GameState state = {0};
 //
 #pragma region
 
-Rectangle get_spaceship_type_location(SpaceshipType type) { return state.sprite_locations.spaceships[type]; }
+Rectangle spaceship_texture_loc(SpaceshipType type) { return state.spritesheet.spaceships[type]; }
 
-Rectangle get_beam_type_location(BeamType type) { return state.sprite_locations.beams[type]; }
+Rectangle proyectile_texture_loc(ProyectileType type) { return state.spritesheet.proyectiles[type]; }
+
+Font *font(FontFamily type) { return &state.fonts[type]; }
 
 f32 adjust_to_delta(f32 weight) { return weight * state.time.delta; }
 
@@ -200,26 +207,26 @@ Spaceship create_spaceship(Vector2 pos, SpaceshipType type)
         .type = type, .movement = {.speed = SPACESHIP_MOVEMENT_SPEED_BASE}, .pos = {.size = SPACESHIP_SIZE_BASE, .coords = pos}};
 }
 
-Beam create_beam(BeamType type, f32 damage, f32 range, f32 movement_speed, Vector2 size, Vector2 pos)
+Proyectile create_proyectile(ProyectileType type, f32 damage, f32 range, f32 movement_speed, Vector2 size, Vector2 pos)
 {
-    return (Beam){.damage = damage,
-                  .range = range,
-                  .origin = pos,
-                  .type = type,
-                  .movement = {.speed = {0, movement_speed}},
-                  .pos = {.size = size, .coords = pos}};
+    return (Proyectile){.damage = damage,
+                        .range = range,
+                        .origin = pos,
+                        .type = type,
+                        .movement = {.speed = {0, movement_speed}},
+                        .pos = {.size = size, .coords = pos}};
 }
 
-Beam *generate_player_beam(f32 damage, f32 range, f32 movement_speed, Vector2 size, Vector2 pos)
+Proyectile *generate_player_proyectile(f32 damage, f32 range, f32 movement_speed, Vector2 size, Vector2 pos)
 {
-    Beam beam = create_beam(BEAM_PLAYER, damage, range, movement_speed, size, pos);
-    return entity_pool_add(&state.pools.player_beams, &beam);
+    Proyectile proyectile = create_proyectile(PROYECTILE_PLAYER, damage, range, movement_speed, size, pos);
+    return data_object_pool_add(&state.pools.player_proyectiles, &proyectile);
 }
 
-Beam *generate_enemy_beam(f32 damage, f32 range, f32 movement_speed, Vector2 size, Vector2 pos)
+Proyectile *generate_enemy_proyectile(f32 damage, f32 range, f32 movement_speed, Vector2 size, Vector2 pos)
 {
-    Beam beam = create_beam(BEAM_ENEMY, damage, range, movement_speed, size, pos);
-    return entity_pool_add(&state.pools.enemy_beams, &beam);
+    Proyectile proyectile = create_proyectile(PROYECTILE_ENEMY, damage, range, movement_speed, size, pos);
+    return data_object_pool_add(&state.pools.enemy_proyectiles, &proyectile);
 }
 
 Player *generate_entity_player(Vector2 pos)
@@ -235,35 +242,39 @@ Player *generate_entity_player(Vector2 pos)
                          },
                      .player_number = state.pools.players.chunk_count,
                      .controls = {.left = KEY_LEFT, .right = KEY_RIGHT, .up = KEY_UP, .down = KEY_DOWN, .shoot = KEY_SPACE}};
-    return entity_pool_add(&state.pools.players, &player);
+    return data_object_pool_add(&state.pools.players, &player);
 }
 
-void init_global_state(void)
+void global_state_init(void)
 {
     Image spritesheet_image = LoadImage(GET_IMAGE_PATH("spritesheet.png"));
 
-    state = (GameState){.time = {.elapsed = GetTime(), .delta = GetFrameTime()},
-                        .pools = {.players = entity_pool_create_type(Player),
-                                  .enemies = entity_pool_create_type(Enemy),
-                                  .player_beams = entity_pool_create_type(Beam),
-                                  .enemy_beams = entity_pool_create_type(Beam)},
-                        .sprite_locations = {.spaceships = {SPACESHIP_FRIENDLY_BASE_TEXTURE_POS, SPACESHIP_FRIENDLY_UPGRADED_TEXTURE_POS,
-                                                            SPACESHIP_ENEMY_BASE_TEXTURE_POS, SPACESHIP_ENEMY_UPGRADED_TEXTURE_POS},
-                                             .beams = {BEAM_PLAYER_TEXTURE_POS, BEAM_ENEMY_TEXTURE_POS}},
-                        .spritesheet = LoadTextureFromImage(spritesheet_image)};
+    state = (GameState){
+        .time = {.elapsed = GetTime(), .delta = GetFrameTime()},
+        .pools = {.players = data_object_pool_create_type(Player),
+                  .enemies = data_object_pool_create_type(Enemy),
+                  .player_proyectiles = data_object_pool_create_type(Proyectile),
+                  .enemy_proyectiles = data_object_pool_create_type(Proyectile)},
+        .spritesheet = {.texture = LoadTextureFromImage(spritesheet_image),
+                        .spaceships = {SPACESHIP_FRIENDLY_BASE_TEXTURE_POS, SPACESHIP_FRIENDLY_UPGRADED_TEXTURE_POS,
+                                       SPACESHIP_ENEMY_BASE_TEXTURE_POS, SPACESHIP_ENEMY_UPGRADED_TEXTURE_POS},
+                        .proyectiles = {PROYECTILE_PLAYER_TEXTURE_POS, PROYECTILE_ENEMY_TEXTURE_POS}},
+        .fonts = {LoadFont(GET_FONT_PATH("atkinson_hyper_mono_regular.ttf")), LoadFont(GET_FONT_PATH("atkinson_hyper_mono_bold.ttf"))}};
 
     UnloadImage(spritesheet_image);
 
-    generate_entity_player((Vector2){10, 10});
+    generate_entity_player((Vector2){GetScreenWidth() / 2, GetScreenHeight() / 2});
 }
 
-void clear_global_state(void)
+void global_state_clear(void)
 {
-    entity_pool_release(&state.pools.players);
-    entity_pool_release(&state.pools.enemies);
-    entity_pool_release(&state.pools.player_beams);
-    entity_pool_release(&state.pools.enemy_beams);
-    UnloadTexture(state.spritesheet);
+    data_object_pool_release(&state.pools.players);
+    data_object_pool_release(&state.pools.enemies);
+    data_object_pool_release(&state.pools.player_proyectiles);
+    data_object_pool_release(&state.pools.enemy_proyectiles);
+    UnloadTexture(state.spritesheet.texture);
+    UnloadFont(state.fonts[0]);
+    UnloadFont(state.fonts[1]);
 }
 
 #pragma endregion
@@ -286,7 +297,7 @@ void cooldown_update(AbilityCooldown *cooldown) { cooldown->available_at = state
 //
 #pragma region
 
-bool beam_entity_move(Beam *b)
+bool proyectile_entity_move(Proyectile *b)
 {
     if ((float)fabs(vector_distance(b->pos.coords, b->origin)) < b->range)
     {
@@ -327,35 +338,35 @@ void player_entity_shoot(Player *player)
         if (isShooting)
         {
             Spaceship ship = player->spaceship;
-            Vector2 beam_pos = {ship.pos.coords.x + ((ship.pos.size.x - player->attack.proyectile_size.x) / 2),
-                                ship.pos.coords.y - player->attack.proyectile_size.y + (ship.pos.size.y / 2)};
-            generate_player_beam(player->attack.damage, player->attack.range, player->attack.proyectile_speed,
-                                 player->attack.proyectile_size, beam_pos);
+            Vector2 proyectile_pos = {ship.pos.coords.x + ((ship.pos.size.x - player->attack.proyectile_size.x) / 2),
+                                      ship.pos.coords.y - player->attack.proyectile_size.y + (ship.pos.size.y / 2)};
+            generate_player_proyectile(player->attack.damage, player->attack.range, player->attack.proyectile_speed,
+                                       player->attack.proyectile_size, proyectile_pos);
             cooldown_update(&player->attack.cooldown);
         }
     }
 }
 
-void update_beam_entities(void)
+void update_proyectile_entities(void)
 {
-    EntityPool *pool;
-    entity_pool_for_each_entity(pool = &state.pools.player_beams, Beam, itr)
+    DataObjectPool *pool;
+    data_object_pool_for_each_object(pool = &state.pools.player_proyectiles, Proyectile, itr)
     {
-        if (!beam_entity_move(itr.entity)) { entity_pool_pop(pool, itr.index); }
+        if (!proyectile_entity_move(itr.data_object)) { data_object_pool_pop(pool, itr.index); }
     }
 
-    entity_pool_for_each_entity(pool = &state.pools.enemy_beams, Beam, itr)
+    data_object_pool_for_each_object(pool = &state.pools.enemy_proyectiles, Proyectile, itr)
     {
-        if (!beam_entity_move(itr.entity)) { entity_pool_pop(pool, itr.index); }
+        if (!proyectile_entity_move(itr.data_object)) { data_object_pool_pop(pool, itr.index); }
     }
 }
 
 void update_player_entities(void)
 {
-    entity_pool_for_each_entity(&state.pools.players, Player, itr)
+    data_object_pool_for_each_object(&state.pools.players, Player, itr)
     {
-        player_entity_move(itr.entity);
-        player_entity_shoot(itr.entity);
+        player_entity_move(itr.data_object);
+        player_entity_shoot(itr.data_object);
     }
 }
 
@@ -369,30 +380,89 @@ void update_player_entities(void)
 
 void draw_spaceship(Spaceship s)
 {
-    DrawTexturePro(state.spritesheet, get_spaceship_type_location(s.type),
+    DrawTexturePro(state.spritesheet.texture, spaceship_texture_loc(s.type),
                    (Rectangle){s.pos.coords.x, s.pos.coords.y, s.pos.size.x, s.pos.size.y}, (Vector2){0}, 0, WHITE);
 }
 
-void draw_beam(Beam b)
+void draw_proyectile(Proyectile b)
 {
-    DrawTexturePro(state.spritesheet, get_beam_type_location(b.type),
+    DrawTexturePro(state.spritesheet.texture, proyectile_texture_loc(b.type),
                    (Rectangle){b.pos.coords.x, b.pos.coords.y, b.pos.size.x, b.pos.size.y}, (Vector2){0}, 0, WHITE);
 }
 
-void draw_players(void)
+void draw_player_entities(void)
 {
-    entity_pool_for_each_entity(&state.pools.players, Player, itr) { draw_spaceship(itr.entity->spaceship); }
+    data_object_pool_for_each_object(&state.pools.players, Player, itr) { draw_spaceship(itr.data_object->spaceship); }
 }
 
-void draw_alive_enemies(void)
+void draw_enemy_entities(void)
 {
-    entity_pool_for_each_entity(&state.pools.enemies, Enemy, itr) { draw_spaceship(itr.entity->spaceship); }
+    data_object_pool_for_each_object(&state.pools.enemies, Enemy, itr) { draw_spaceship(itr.data_object->spaceship); }
 }
 
-void draw_alive_beams(void)
+void draw_proyectile_entities(void)
 {
-    entity_pool_for_each_entity(&state.pools.player_beams, Beam, itr) { draw_beam(*itr.entity); }
-    entity_pool_for_each_entity(&state.pools.enemy_beams, Beam, itr) { draw_beam(*itr.entity); }
+    data_object_pool_for_each_object(&state.pools.player_proyectiles, Proyectile, itr) { draw_proyectile(*itr.data_object); }
+    data_object_pool_for_each_object(&state.pools.enemy_proyectiles, Proyectile, itr) { draw_proyectile(*itr.data_object); }
+}
+
+#pragma endregion
+
+//
+// Debug
+// :debug
+//
+#pragma region
+
+#define DEBUG_PANEL_SCREEN_POSITION ((Vector2){20, 20})
+
+DebugPanel *dbg_panels[2];
+
+void debug_panel_init()
+{
+    Font *sf = font(FONT_ATKINSON_BOLD), *ef = font(FONT_ATKINSON_REGULAR);
+    dbg_panels[0] = debug_panel_create(DARKGREEN, sf, ef);
+    dbg_panels[1] = debug_panel_create(GREEN, sf, ef);
+}
+
+void debug_panel_update()
+{
+    DebugPanel *timings_panel = dbg_panels[0], *entities_panel = dbg_panels[1];
+    debug_panel_clean(timings_panel);
+    debug_panel_clean(entities_panel);
+
+    debug_panel_add_section(timings_panel, NULL);
+    debug_panel_add_entry(timings_panel, TextFormat("%d fps", GetFPS()));
+
+    debug_panel_add_section(entities_panel, "PLAYERS");
+    debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.pools.players)));
+    debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.pools.players)));
+
+    debug_panel_add_section(entities_panel, "PLAYER PROYECTILES");
+    debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.pools.player_proyectiles)));
+    debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.pools.player_proyectiles)));
+
+    debug_panel_add_section(entities_panel, "ENEMIES");
+    debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.pools.enemies)));
+    debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.pools.enemies)));
+
+    debug_panel_add_section(entities_panel, "ENEMY PROYECTILES");
+    debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.pools.enemy_proyectiles)));
+    debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.pools.enemy_proyectiles)));
+}
+
+void debug_panel_clear()
+{
+    debug_panel_delete(dbg_panels[0]);
+    debug_panel_delete(dbg_panels[1]);
+}
+
+void draw_debug_panel()
+{
+    Vector2 timings_pos = DEBUG_PANEL_SCREEN_POSITION,
+            entities_pos = (Vector2){timings_pos.x, (timings_pos.y * 2) + debug_panel_measure(*dbg_panels[0]).y};
+    debug_panel_draw(*dbg_panels[0], timings_pos);
+    debug_panel_draw(*dbg_panels[1], entities_pos);
 }
 
 #pragma endregion
@@ -403,7 +473,7 @@ void draw_alive_beams(void)
 //
 #pragma region
 
-void setup_window()
+void setup_window(void)
 {
     const char *game_title = "Spaceship";
     Image icon = LoadImage(GET_IMAGE_PATH("spaceship-icon.png"));
@@ -424,7 +494,7 @@ void update_times(void)
 void update_entities(void)
 {
     update_player_entities();
-    update_beam_entities();
+    update_proyectile_entities();
 }
 
 void do_drawing(void)
@@ -432,53 +502,41 @@ void do_drawing(void)
     BeginDrawing();
     ClearBackground(BLACK);
 
-    draw_players();
-    draw_alive_enemies();
-    draw_alive_beams();
+    draw_player_entities();
+    draw_enemy_entities();
+    draw_proyectile_entities();
 
-#ifdef DEBUG
-    f32 xo = 5, yo = 5, wo = 100, ho = 100, thick = 2, font_size = 10, margin = 3, x = xo + thick + margin, y = yo + thick + margin;
+    IF_DEBUG { draw_debug_panel(); }
 
-    DrawRectangleLinesEx((Rectangle){xo, yo, wo, ho}, thick, GREEN);
-    DrawRectangle(xo + thick, yo + thick, wo - thick - thick, ho - thick - thick, Fade(WHITE, 0.25));
-
-    DrawText("Debug info", x, y, font_size, WHITE);
-
-    y += font_size + margin;
-    DrawText(TextFormat("FPS: %d", GetFPS()), x, y, font_size, WHITE);
-
-    y += font_size + margin;
-    DrawText(TextFormat("Enemies [Total]: %lld", entity_pool_chunk_count(state.pools.enemies)), x, y, font_size, WHITE);
-    y += font_size;
-    DrawText(TextFormat("Enemies [Alive]: %lld", entity_pool_entity_count(state.pools.enemies)), x, y, font_size, WHITE);
-
-    y += font_size + margin;
-    DrawText(TextFormat("Beams [Total]: %lld", entity_pool_chunk_count(state.pools.player_beams)), x, y, font_size, WHITE);
-    y += font_size;
-    DrawText(TextFormat("Beams [Alive]: %lld", entity_pool_entity_count(state.pools.player_beams)), x, y, font_size, WHITE);
-#endif
     EndDrawing();
 }
 
-int main()
+int main(void)
 {
     SetTargetFPS(144);
 
     setup_window();
-    init_global_state();
+    global_state_init();
+
+    IF_DEBUG { debug_panel_init(); }
 
     while (!WindowShouldClose()) // Detect window close button or ESC key
     {
         update_times();
         update_entities();
         // check_collisions();
+
+        IF_DEBUG { debug_panel_update(); }
+
         do_drawing();
     }
 
     CloseWindow();
-    clear_global_state();
+    global_state_clear();
 
-    return 0;
+    IF_DEBUG { debug_panel_clear(); }
+
+    return EXIT_SUCCESS;
 }
 
 #pragma endregion
