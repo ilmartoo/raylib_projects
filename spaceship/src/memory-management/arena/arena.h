@@ -92,6 +92,11 @@ void arena_pop(Arena *arena, size_t size);
  * @param count Size of the array.
  */
 #define arena_pop_array(arena, type, count) arena_pop((arena), sizeof(type) * (count))
+/**
+ * Frees all bytes from an arena.
+ * @param arena Arena to use.
+ */
+void arena_clear(Arena *arena);
 
 /**
  * Gets the used space of an arena.

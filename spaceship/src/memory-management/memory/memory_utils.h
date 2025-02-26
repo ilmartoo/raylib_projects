@@ -11,7 +11,7 @@
  * @param bytes Number of bytes to copy.
  * @return Reference to the destination memory space.
  */
-void *memory_copy(void *dest, const void *const src, size_t bytes);
+void *memory_copy(void *dest, const void *src, size_t bytes);
 /**
  * Copies the bytes of a type from a source to a destination.
  * @param dest Destination memory space.

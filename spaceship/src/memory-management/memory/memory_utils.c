@@ -1,9 +1,10 @@
 #include <stddef.h>
-#include "memory.h"
 
-void *memory_copy(void *dest, void *const src, size_t bytes)
+#include "memory_utils.h"
+
+void *memory_copy(void *dest, const void *src, size_t bytes)
 {
-    for (char *d = dest, *s = src; bytes; --bytes, ++d, ++s) { *d = *s; }
+    for (char *d = dest, *s = (char *)src; bytes; --bytes, ++d, ++s) { *d = *s; }
     return dest;
 }
 
