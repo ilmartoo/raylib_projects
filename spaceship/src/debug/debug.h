@@ -7,10 +7,10 @@
 
 #include <stdio.h>
 
-#define STR_ENDL "\n"
-#define STR_ERRO "[ERRO] "
-#define STR_WARN "[WARN] "
-#define STR_INFO "[INFO] "
+#define STR_ENDL  "\n"
+#define STR_ERRO  "[ERRO] "
+#define STR_WARN  "[WARN] "
+#define STR_INFO  "[INFO] "
 #define FILE_LINE "[%s:%d] "
 
 // Logs an error with printf syntax
@@ -34,32 +34,32 @@
 #define log_pointer(x) fprintf(stdout, FILE_LINE STR_INFO "%s = %p" STR_ENDL, __FILE__, __LINE__, #x, x)
 
 // States a block of code
-#define DEBUG_BLOCK(code_block) do { code_block } while (0)
+#define IF_DEBUG if (1)
 
 #else
 
 // Logs an error with printf syntax
-#define log_error(format, ...) do { } while (0)
+#define log_error(format, ...)
 // Logs a warning with printf syntax
-#define log_warn(format, ...) do { } while (0)
+#define log_warn(format, ...)
 // Logs information with printf syntax
-#define log_info(format, ...) do { } while (0)
+#define log_info(format, ...)
 
 // Logs an integer variable
-#define log_int(x) do { } while (0)
+#define log_int(x)
 // Logs an float variable
-#define log_float(x) do { } while (0)
+#define log_float(x)
 // Logs a char variable
-#define log_char(x) do { } while (0)
+#define log_char(x)
 // Logs a string variable
-#define log_string(x) do { } while (0)
+#define log_string(x)
 // Logs an hexadecimal variable
-#define log_hex(x) do { } while (0)
+#define log_hex(x)
 // Logs a pointer variable
-#define log_pointer(x) do { } while (0)
+#define log_pointer(x)
 
 // States a block of code
-#define DEBUG_BLOCK(code_block) do { } while (0)
+#define IF_DEBUG if (0)
 
 #endif // DEBUG
 
