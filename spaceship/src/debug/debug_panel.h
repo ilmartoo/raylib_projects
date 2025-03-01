@@ -32,8 +32,8 @@ typedef struct DebugPanel
     Color background_color;
     struct
     {
-        Font *section;
-        Font *entry;
+        Font section;
+        Font entry;
     } fonts;
     /* ... */
     struct
@@ -50,7 +50,7 @@ typedef struct DebugPanel
  * @param entry_font Font for the entry text.
  * @returns A new debug panel.
  */
-DebugPanel *debug_panel_create(Color background_color, Font *section_font, Font *entry_font);
+DebugPanel *debug_panel_create(Color background_color, Font section_font, Font entry_font);
 /**
  * Deletes a debug panel.
  * @param panel Panel to delete.

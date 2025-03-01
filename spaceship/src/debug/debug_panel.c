@@ -42,7 +42,7 @@ void debug_panel_add_section(DebugPanel *panel, const char *title)
         .title = title == NULL ? NULL : memory_copy(arena_push(&panel->arena, title_char_count), title, title_char_count),
         .text_measures = title == NULL
                              ? (Vector2){0}
-                             : MeasureTextEx(*panel->fonts.section, title, DEBUG_PANEL_SECTION_FONT_SIZE, DEBUG_PANEL_FONT_SPACING),
+                             : MeasureTextEx(panel->fonts.section, title, DEBUG_PANEL_SECTION_FONT_SIZE, DEBUG_PANEL_FONT_SPACING),
         .entries = {NULL, NULL},
         .next = NULL};
 
@@ -58,7 +58,7 @@ void debug_panel_add_entry(DebugPanel *panel, const char *text)
     DebugPanelEntry *entry = arena_push_type(&panel->arena, DebugPanelEntry);
     *entry =
         (DebugPanelEntry){.text = memory_copy(arena_push(&panel->arena, text_char_count), text, text_char_count),
-                          .text_measures = MeasureTextEx(*panel->fonts.entry, text, DEBUG_PANEL_ENTRY_FONT_SIZE, DEBUG_PANEL_FONT_SPACING),
+                          .text_measures = MeasureTextEx(panel->fonts.entry, text, DEBUG_PANEL_ENTRY_FONT_SIZE, DEBUG_PANEL_FONT_SPACING),
                           .next = NULL};
 
     if (last_section->entries.first == NULL) { last_section->entries.first = last_section->entries.last = entry; }
@@ -116,7 +116,7 @@ void debug_panel_draw(DebugPanel panel, Vector2 screen_position)
     {
         if (section->title != NULL)
         {
-            draw_text(section->title, x, y, DEBUG_PANEL_SECTION_FONT_SIZE, *panel.fonts.section);
+            draw_text(section->title, x, y, DEBUG_PANEL_SECTION_FONT_SIZE, panel.fonts.section);
             y += section->text_measures.y;
         }
 
@@ -126,7 +126,7 @@ void debug_panel_draw(DebugPanel panel, Vector2 screen_position)
         entry = section->entries.first;
         while (entry != NULL)
         {
-            draw_text(entry->text, x, y, DEBUG_PANEL_ENTRY_FONT_SIZE, *panel.fonts.entry);
+            draw_text(entry->text, x, y, DEBUG_PANEL_ENTRY_FONT_SIZE, panel.fonts.entry);
             y += entry->text_measures.y;
 
             entry = entry->next;
