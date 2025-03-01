@@ -4,30 +4,32 @@
 
 #include "types.h"
 
-// -- Internals -----------------------------------
+// ---- Internals -------------------------------------------------------------
+
 #define __ILMARTO_DATA_OBJECT_POOL_FOR_EACH_CHUNK(pool, type, iteration_var)                                                               \
     if (pool->chunk_count > 0)                                                                                                             \
         for (                                                                                                                              \
             struct {                                                                                                                       \
                 u32 index;                                                                                                                 \
-                type *data_object;                                                                                                         \
+                type *data;                                                                                                                \
                 bool valid;                                                                                                                \
             } iteration_var = {0, (type *)pool->chunks, *(bool *)(pool->chunks + pool->data_object_size)};                                 \
             iteration_var.index < pool->chunk_count;                                                                                       \
-            ++iteration_var.index, iteration_var.data_object = (type *)((uptr)iteration_var.data_object + pool->chunk_size),               \
-              iteration_var.valid = *(bool *)((uptr)iteration_var.data_object + pool->data_object_size))
+            ++iteration_var.index, iteration_var.data = (type *)((uptr)iteration_var.data + pool->chunk_size),                             \
+              iteration_var.valid = *(bool *)((uptr)iteration_var.data + pool->data_object_size))
 
 #define __ILMARTO_DATA_OBJECT_POOL_FOR_EACH_OBJECT(pool, type, iteration_var)                                                              \
     if (pool->chunk_count > 0)                                                                                                             \
         for (                                                                                                                              \
             struct {                                                                                                                       \
                 u32 index;                                                                                                                 \
-                type *data_object;                                                                                                         \
+                type *data;                                                                                                                \
             } iteration_var = {0, (type *)pool->chunks};                                                                                   \
             iteration_var.index < pool->chunk_count;                                                                                       \
-            ++iteration_var.index, iteration_var.data_object = (type *)((uptr)iteration_var.data_object + pool->chunk_size))               \
-            if (*(bool *)((uptr)iteration_var.data_object + pool->data_object_size))
-// ------------------------------------------------
+            ++iteration_var.index, iteration_var.data = (type *)((uptr)iteration_var.data + pool->chunk_size))                             \
+            if (*(bool *)((uptr)iteration_var.data + pool->data_object_size))
+
+// ----------------------------------------------------------------------------
 
 #define __ILMARTO_DATA_OBJECT_POOL_DEFAULT_MEM_SIZE 1024
 
@@ -79,7 +81,7 @@ void data_object_pool_release(DataObjectPool *pool);
  * @param data object Reference to the memory that contains the data object to include (as a shallow copy) into the data object pool.
  * @return Reference to the new data object inside the memory pool.
  */
-void *data_object_pool_add(DataObjectPool *pool, const void *data_object);
+void *data_object_pool_add(DataObjectPool *pool, const void *data);
 /**
  * Removes the data object at the specified index from the data object pool.
  * @param pool Entity pool to use.
@@ -123,7 +125,7 @@ u32 data_object_pool_chunk_count(DataObjectPool pool);
  * @param type Type of the data object.
  * @param iteration_var Name of the variable where all the iteration information will be stored.
  * @param iteration_var.index Index of the current chunk.
- * @param iteration_var.data_object Pointer to the data object of the chunk.
+ * @param iteration_var.data Pointer to the data object of the chunk.
  * @param iteration_var.valid Boolean representing if the data object inside the chunk is valid.
  *
  * Usage:
@@ -135,7 +137,7 @@ u32 data_object_pool_chunk_count(DataObjectPool pool);
  * data_object_pool_add(&pool, &(f = 6.7f));
  *
  * data_object_pool_for_each_chunk(pool, float, itr) {
- *     printf("Iteration: %d. Entity: %.2f [%p]. %s\n", itr.index, *itr.data_object, itr.data_object, itr.is_used ? "Is alive :)"
+ *     printf("Iteration: %d. Entity: %.2f [%p]. %s\n", itr.index, *itr.data, itr.data, itr.is_used ? "Is alive :)"
  * : "Is dead :(");
  * }
  * ```
@@ -150,7 +152,7 @@ u32 data_object_pool_chunk_count(DataObjectPool pool);
  * @param type Type of the data object.
  * @param iteration_var Name of the variable where all the iteration information will be stored.
  * @param iteration_var.index Index of the current chunk.
- * @param iteration_var.data_object Pointer to the data object of the chunk.
+ * @param iteration_var.data Pointer to the data object of the chunk.
  *
  * Usage:
  * ```
@@ -161,7 +163,7 @@ u32 data_object_pool_chunk_count(DataObjectPool pool);
  * data_object_pool_add(&pool, &(f = 6.7f));
  *
  * data_object_pool_for_each_data_object(pool, float, itr) {
- *     printf("Iteration: %d. Entity: %.2f [%p]\n", itr.index, *itr.data_object, itr.data_object");
+ *     printf("Iteration: %d. Entity: %.2f [%p]\n", itr.index, *itr.data, itr.data");
  * }
  * ```
  */
