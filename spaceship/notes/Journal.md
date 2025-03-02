@@ -39,7 +39,7 @@ Lista de tareas y notas importantes sobre el desarrollo de este proyecto.
 	- 2P - Pantalla dividida vertical/horizontal
 	- 3P - Pantalla dividida en modo Y
 	- 4P - Pantalla dividida en cuatro sectores
-	- Posibilidad de crear múltiples ventanas en la que cada una se muestre un jugador (ver [Windowkill](https://torcado.itch.io/windowkill))
+	- Posibilidad de crear múltiples ventanas en la que cada una se muestre un jugador (ver [Windowkill](https://torcado.itch.io/windowkill)) (ver [discusión sobre múltiples ventanas en raylib](https://github.com/raysan5/raylib/issues/1989#issuecomment-2291474771))
 
 - Los agujeros negros pueden conectar distintas partes del mapa:
 	- El interior es una mazmorra generada de forma procedural con tantas salidas como conexiones con el exterior tenga

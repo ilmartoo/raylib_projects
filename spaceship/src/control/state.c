@@ -2,11 +2,11 @@
 #include "entities.h"
 #include "raylib.h"
 
-void initialize_game_state(void)
+void game_state_initialize(void)
 {
     Image spritesheet_image = LoadImage(GET_IMAGE_PATH("spritesheet.png"));
 
-    state = (GameState){
+    state = (GameState) {
         .time_elapsed = GetTime(),
         .time_delta = GetFrameTime(),
 
@@ -16,16 +16,17 @@ void initialize_game_state(void)
         .projectiles_enemies = data_object_pool_create_type(Projectile),
 
         .spritesheet = LoadTextureFromImage(spritesheet_image),
-        .spritesheet_locations_spaceships = {SPACESHIP_FRIENDLY_BASE_TEXTURE_POS, SPACESHIP_FRIENDLY_UPGRADED_TEXTURE_POS,
-                                             SPACESHIP_ENEMY_BASE_TEXTURE_POS, SPACESHIP_ENEMY_UPGRADED_TEXTURE_POS},
-        .spritesheet_locations_proyectiles = {PROJECTILE_PLAYER_TEXTURE_POS, PROJECTILE_ENEMY_TEXTURE_POS},
+        .spritesheet_locations_spaceships = { SPACESHIP_FRIENDLY_BASE_TEXTURE_POS, SPACESHIP_FRIENDLY_UPGRADED_TEXTURE_POS,
+            SPACESHIP_ENEMY_BASE_TEXTURE_POS, SPACESHIP_ENEMY_UPGRADED_TEXTURE_POS },
+        .spritesheet_locations_proyectiles = { PROJECTILE_PLAYER_TEXTURE_POS, PROJECTILE_ENEMY_TEXTURE_POS },
 
-        .fonts = {LoadFont(GET_FONT_PATH("atkinson_hyper_mono_regular.ttf")), LoadFont(GET_FONT_PATH("atkinson_hyper_mono_bold.ttf"))}};
+        .fonts = { LoadFont(GET_FONT_PATH("atkinson_hyper_mono_regular.ttf")), LoadFont(GET_FONT_PATH("atkinson_hyper_mono_bold.ttf")) }
+    };
 
     UnloadImage(spritesheet_image);
 }
 
-void clear_game_state(void)
+void game_state_clear(void)
 {
 
     data_object_pool_release(&state.players);

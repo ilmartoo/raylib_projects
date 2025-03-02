@@ -10,8 +10,7 @@
 // ---- Entity ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-typedef struct Entity
-{
+typedef struct Entity {
     Vector2 position;
     Vector2 size;
     Vector2 movement_speed;
@@ -22,16 +21,14 @@ typedef struct Entity
 // ---- Entity types ----------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-typedef enum SpaceshipType
-{
+typedef enum SpaceshipType {
     SPACESHIP_FRIENDLY_BASE = 0,
     SPACESHIP_FRIENDLY_UPGRADED,
     SPACESHIP_ENEMY_BASE,
     SPACESHIP_ENEMY_UPGRADED
 } SpaceshipType;
 
-typedef enum ProjectileType
-{
+typedef enum ProjectileType {
     PROYECTILE_PLAYER = 0,
     PROYECTILE_ENEMY,
 } ProjectileType;
@@ -40,8 +37,7 @@ typedef enum ProjectileType
 // ---- Proyectile ------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-typedef struct Projectile
-{
+typedef struct Projectile {
     Entity entity;
     ProjectileType type;
 
@@ -51,40 +47,40 @@ typedef struct Projectile
 
 } Projectile;
 
-Projectile create_projectile(ProjectileType type, Entity entity, u32 damage, u32 range);
+Projectile projectile_create(ProjectileType type, Entity entity, u32 damage, u32 range);
 
 // ----------------------------------------------------------------------------
 // ---- Player ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-typedef struct Player
-{
+typedef struct Player {
     Entity entity;
     SpaceshipType type;
+
+    Vector2 screen_position;
 
     AbilityProjectile shoot;
     AbilityProjectile missile;
 } Player;
 
-#define PLAYER_MOVEMENT_SPEED ((Vector2){250, 200})
-#define PLAYER_SIZE           ((Vector2){20, 20})
+#define PLAYER_MOVEMENT_SPEED ((Vector2) { 250, 200 })
+#define PLAYER_SIZE ((Vector2) { 20, 20 })
 
-Player create_player(SpaceshipType type);
+Player player_create(SpaceshipType type);
 
 // ----------------------------------------------------------------------------
 // ---- Enemy -----------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-typedef struct Enemy
-{
+typedef struct Enemy {
     Entity entity;
     SpaceshipType type;
 
     AbilityProjectile shoot;
 } Enemy;
 
-#define ENEMY_SIZE ((Vector2){20, 20})
+#define ENEMY_SIZE ((Vector2) { 20, 20 })
 
-Enemy create_enemy(SpaceshipType type);
+Enemy enemy_create(SpaceshipType type, Vector2 position, Vector2 movement_speed, f32 rotation);
 
 #endif // __SOURCE_ENTITY_H_
