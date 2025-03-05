@@ -5,15 +5,16 @@ Lista de tareas y notas importantes sobre el desarrollo de este proyecto.
 - Los bugs a corregir se recogen en [bugs](#Bugs).
 ## Tareas
 
-| Tarea                  | Entidad                       | Resumen                                                                                           |
-| ---------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| Jugabilidad y objetivo |                               | Pensar sobre el gameplay y el objetivo del juego [\[✒️\]](#notas#gameplay)                        |
-| Controles              |                               | Librería o utilidad que permita definir acciones y la tecla asociada [\[✒️\]](#notas#inputs)      |
-| Cámara                 | Player                        | Creación de la cámara, de forma que el espacio visible no dependa del tamaño de la pantalla       |
-| Enemigos               | Enemy                         | Creación de la entidad enemigo, funciones necesarias, acciones, movimiento...                     |
-| Habilidades            | Ability<br>Player<br>Enemy    | Inventar nuevas habilidades para los jugadores y enemigos [\[✒️\]](#notas#posibles%20habilidades) |
-| Colisiones             | Player<br>Enemy<br>Projectile | Comprobación de colisiones entre jugadores, enemigos y proyectiles                                |
-| IA de enemigos         | Enemy                         | Creación de un algoritmo de IA para activar el movimiento y acciones de los enemigos              |
+| Tarea                  | Entidad                       | Resumen                                                                                                                                        |
+| ---------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Jugabilidad y objetivo |                               | Pensar sobre el gameplay y el objetivo del juego [\[✒️\]](#notas#gameplay)                                                                     |
+| Controles              |                               | Librería o utilidad que permita definir acciones y la tecla asociada [\[✒️\]](#notas#inputs)                                                   |
+| Cámara                 | Player                        | Creación de la cámara, de forma que el espacio visible no dependa del tamaño de la pantalla                                                    |
+| Enemigos               | Enemy                         | Creación de la entidad enemigo, funciones necesarias, acciones, movimiento...                                                                  |
+| Habilidades            | Ability<br>Player<br>Enemy    | Inventar nuevas habilidades para los jugadores y enemigos [\[✒️\]](#notas#posibles%20habilidades)                                              |
+| Colisiones             | Player<br>Enemy<br>Projectile | Comprobación de colisiones entre jugadores, enemigos y proyectiles                                                                             |
+| IA de enemigos         | Enemy                         | Creación de un algoritmo de IA para activar el movimiento y acciones de los enemigos                                                           |
+| Recuadro de cooldowns  | Player<br>UI                  | Recuadro o cajetín donde se muestren las habilidades, preferiblemente con un texto descriptivo o una imagen, con el tiempo de recarga asociado |
 >\[✒️\] - Enlace a la nota donde se añade contexto.
 
 ---
@@ -65,7 +66,7 @@ La librería de inputs debería ser la encargada de realizar la comprobación de
 	- Teclado y ratón:
 		- Pulsación de teclas del teclado.
 		- Pulsación de botones del ratón
-		- Movimiento del ratón (ejes: +X, -X, +Y, -Y)
+		- Posición del ratón (ejes: +X, -X, +Y, -Y)
 	- Mando
 		- Botón de mando
 		- Gatillo de mando, si tiene (¿olvidar esto debido a limitaciones?)

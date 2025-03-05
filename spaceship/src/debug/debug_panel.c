@@ -17,7 +17,7 @@
 #define DEBUG_PANEL_PADDING_Y       2
 #define DEBUG_PANEL_SECTION_SPACING 4
 
-DebugPanel *debug_panel_create(Color background_color, Font *section_font, Font *entry_font)
+DebugPanel *debug_panel_create(Color background_color, Font section_font, Font entry_font)
 {
     DebugPanel *panel = reserve(DebugPanel);
     *panel = (DebugPanel){.arena = arena_create(),

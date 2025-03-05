@@ -73,7 +73,7 @@ DataObjectPool data_object_pool_create_custom(usize data_object_size, usize init
  * Deletes an data object pool.
  * @param pool Entity pool to delete.
  */
-void data_object_pool_release(DataObjectPool *pool);
+void data_object_pool_delete(DataObjectPool *pool);
 
 /**
  * Adds an data object to an data object pool.
@@ -94,7 +94,7 @@ void data_object_pool_pop(DataObjectPool *pool, u32 data_object_index);
  * @param data_object_index Index of the data object to retrieve.
  * @return Retrieved data object or NULL if no chunk at the specified index or the data object is invalid.
  */
-void *data_object_pool_data_object_at(DataObjectPool pool, u32 data_object_index);
+void *data_object_pool_object_at(DataObjectPool pool, u32 data_object_index);
 /**
  * Retrieves the data object at the specified index as a given type .
  * @param pool Entity pool to use.
@@ -102,8 +102,7 @@ void *data_object_pool_data_object_at(DataObjectPool pool, u32 data_object_index
  * @param data_object_index Index of the data object to retrieve.
  * @return Retrieved data object casted to type or NULL if no chunk at the specified index or the data object is invalid.
  */
-#define data_object_pool_data_object_type_at(pool, type, data_object_index)                                                                \
-    ((type *)data_object_pool_data_object_at(pool, data_object_index))
+#define data_object_pool_data_object_type_at(pool, type, data_object_index) ((type *)data_object_pool_object_at(pool, data_object_index))
 /**
  * Retrieves the number of entities inside the data object pool.
  * @param pool Entity pool to check.

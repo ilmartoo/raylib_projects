@@ -29,10 +29,13 @@ typedef uint64_t u64; // 64 bit unsigned integer type
 typedef float f32;  // 32 bit float type
 typedef double f64; // 64 bit float type
 
-// Retrieves the maximum value
+// Gets the maximum value between two values
 #define max(a, b) (((a) > (b)) ? (a) : (b))
-// Retrieves the minimum value
+// Gets the minimum value between two values
 #define min(a, b) (((a) < (b)) ? (a) : (b))
+
+// Limits a value between a minimum and a maximum
+#define minmax(value, min, max) ((value) < (min) ? (min) : ((value) > (max) ? (max) : (value)))
 
 // Allocates a new element in the heap
 #define reserve(data_type) (data_type *)malloc(sizeof(data_type))

@@ -7,9 +7,9 @@
 #define FONTS_DIR  ASSETS_DIR "fonts/"
 #define IMAGES_DIR ASSETS_DIR "images/"
 
-#define GET_ASSET_PATH(asset_filename) (ASSETS_DIR asset_filename)
-#define GET_AUDIO_PATH(audio_filename) (AUDIO_DIR audio_filename)
-#define GET_FONT_PATH(font_filename)   (FONTS_DIR font_filename)
-#define GET_IMAGE_PATH(image_filename) (IMAGES_DIR image_filename)
+#define path_asset(asset_filename) (ASSETS_DIR asset_filename)
+#define path_audio(audio_filename) (AUDIO_DIR audio_filename)
+#define path_font(font_filename)   (FONTS_DIR font_filename)
+#define path_image(image_filename) (IMAGES_DIR image_filename)
 
 #endif // __SOURCE_FILES_H_
