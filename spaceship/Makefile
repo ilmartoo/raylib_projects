@@ -18,7 +18,7 @@ PLATFORM ?= PLATFORM_DESKTOP
 #  -Wextra              this enables some extra warning flags that are not enabled by -Wall
 #  -Werror              make all warnings into errors 
 #
-#  -Wfloat-equal        warn if floating-point values are used in equality comparisons
+#  -Wfloat-equal        warn if floating-point values are used in equality comparisons (Deactivated due to raymath.h)
 #  -Wuninitialized      warn if an object with automatic or allocated storage duration is used without having been initialized
 #  -Winit-self          warn about uninitialized variables that are initialized with themselves
 #
@@ -33,7 +33,7 @@ PLATFORM ?= PLATFORM_DESKTOP
 #  -std=c17             defines C language mode (standard C from 2017 revision)
 #
 #  -D_DEFAULT_SOURCE    defined the _DEFAULT_SOURCE macro. Use with -std=c99 on Linux and PLATFORM_WEB, required for timespec
-FLAGS = -Wall -Werror -Wextra -Wfloat-equal -Wuninitialized -Winit-self -Wno-missing-braces -Wno-unknown-pragmas -Wno-error=unknown-pragmas -std=c11 -D_DEFAULT_SOURCE  -D$(PLATFORM)
+FLAGS = -Wall -Werror -Wextra -Wuninitialized -Winit-self -Wno-missing-braces -Wno-unknown-pragmas -Wno-error=unknown-pragmas -std=c11 -D_DEFAULT_SOURCE  -D$(PLATFORM)
 
 #
 # Directories
