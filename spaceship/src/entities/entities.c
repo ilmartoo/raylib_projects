@@ -7,26 +7,22 @@
 #include "raymath.h"
 #include "state.h"
 
-Vector2 entity_center(Entity entity) { return Vector2Add(entity.position, Vector2Scale(entity.size, 0.5)); }
-
 #ifdef DEBUG
-void draw_entity_bounding_box(Entity entity, Color color)
-{
-    DrawCircleLinesV(entity_center(entity), max(entity.size.x, entity.size.y) * 0.5, color);
-}
+#define entity_bounding_box_draw(center, radius, color, fill)                                                                              \
+    (fill ? DrawCircleV(center, radius, color) : DrawCircleLinesV(center, radius, color))
+#else
+#define entity_bounding_box_draw(center, radius, color, fill)
 #endif
 
-void draw_entity(Entity entity, Rectangle texture_location)
+Vector2 entity_center(Entity entity) { return Vector2Add(entity.position, Vector2Scale(entity.size, 0.5)); }
+
+void entity_draw(Entity entity, Rectangle texture_location)
 {
     Vector2 size_center = Vector2Scale(entity.size, 0.5);
 
     DrawTexturePro(state.spritesheet, texture_location,
                    (Rectangle){size_center.x + entity.position.x, size_center.y + entity.position.y, entity.size.x, entity.size.y},
-                   size_center, rad_to_deg(entity.rotation), WHITE);
-
-#ifdef DEBUG
-    draw_entity_bounding_box(entity, RED);
-#endif
+                   size_center, Rad2Deg(entity.rotation + entity.draw_rotation), WHITE);
 }
 
 Projectile *projectile_create(ProjectileType type, Entity entity, u32 damage, u32 range)
@@ -50,24 +46,38 @@ bool projectile_move(Projectile *projectile)
     if (distance < range && -distance < range)
     {
         projectile->entity.velocity = adjust_vector2_to_time_delta(projectile->entity.movement_speed);
-        projectile->entity.position = Vector2Subtract(projectile->entity.position, projectile->entity.velocity);
+        projectile->entity.position = Vector2Add(projectile->entity.position, projectile->entity.velocity);
         return true;
     }
     return false;
 }
 
-void proyectile_draw(Projectile projectile) { draw_entity(projectile.entity, locate_texture_projectile(projectile.type)); }
+void proyectile_draw(Projectile projectile)
+{
+    entity_draw(projectile.entity, locate_texture_projectile(projectile.type));
+
+    Vector2 center = entity_center(projectile.entity);
+    Vector2 half_size = Vector2Scale(projectile.entity.size, 0.5);
+    entity_bounding_box_draw(center, half_size.y, Fade(ORANGE, 0.5), false);
+    entity_bounding_box_draw(
+        Vector2Add(center, Vector2Scale(Vector2UnitCirclePoint(projectile.entity.rotation), half_size.y - half_size.x)), half_size.x, RED,
+        true);
+}
 
 Player *player_create(SpaceshipType type, Vector2 position)
 {
-    Player player = {.entity = {.position = position,
-                                .size = PLAYER_SIZE,
-                                .movement_speed = PLAYER_MOVEMENT_SPEED,
-                                .velocity = {0},
-                                .rotation = PLAYER_ROTATION},
+    Player player = {.entity =
+                         {
+                             .position = position,
+                             .size = PLAYER_SIZE,
+                             .movement_speed = PLAYER_MOVEMENT_SPEED,
+                             .velocity = {0},
+                             .rotation = 0,
+                             .draw_rotation = PLAYER_DRAW_ROTATION,
+                         },
                      .type = type,
                      .aiming_at = {0},
-                     .shoot_from_left = true,
+                     .alternate_shooting = true,
                      .using_gamepad = true,
                      .controls =
                          {
@@ -80,7 +90,7 @@ Player *player_create(SpaceshipType type, Vector2 position)
                                  .actions = DEFAULT_GAMEPAD_INPUTS,
                              },
                          },
-                     .shoot = ABILITY_SHOOT,
+                     .shoot_basic = ABILITY_SHOOT,
                      .shoot_missile = ABILITY_SHOOT_MISSILE};
 
     return (Player *)data_object_pool_add(&state.players, &player);
@@ -151,15 +161,16 @@ void player_aim(Player *player)
 
     if (distance < threshold)
     {
-        Vector2 aim_position = Vector2Scale(vector2_unit_at_angle(player->entity.rotation), PLAYER_AIMING_SIGHT_MIN_DISTANCE);
+        Vector2 aim_position = Vector2Scale(Vector2UnitCirclePoint(player->entity.rotation), PLAYER_AIMING_SIGHT_MIN_DISTANCE);
 
         player->aiming_at = Vector2Add(aim_position, entity_center(player->entity));
     }
     else
     {
-        f32 angle = Vector2Angle((Vector2){-1, 0}, aim_delta) + PLAYER_ROTATION; // Angle with Y-AXIS
+        f32 angle = Vector2Angle((Vector2){1, 0}, aim_delta); // Angle with Y-AXIS
+        if (angle < 0) { angle += TAU; }
 
-        Vector2 aim_position = distance > 1 ? Vector2Scale(vector2_unit_at_angle(angle), PLAYER_AIMING_SIGHT_MAX_DISTANCE)
+        Vector2 aim_position = distance > 1 ? Vector2Scale(Vector2UnitCirclePoint(angle), PLAYER_AIMING_SIGHT_MAX_DISTANCE)
                                             : Vector2Scale(aim_delta, PLAYER_AIMING_SIGHT_MAX_DISTANCE);
         aim_position = Vector2Add(aim_position, entity_center(player->entity));
 
@@ -168,97 +179,116 @@ void player_aim(Player *player)
     }
 }
 
-void player_shoot(Player *player)
+void player_shoot(Player *player, AbilityProjectile *ability, PlayerAction action, Vector2 projectile_size, f32 projectile_speed)
 {
-    AbilityProjectile *shoot_ab = &player->shoot;
-    if (is_cooldown_ready(shoot_ab->cooldown))
+    if (is_cooldown_ready(ability->cooldown))
     {
-        bool is_shooting = unit_ceil(player_input(*player, ACTION_ABILITY_SHOOT));
+        bool is_shooting = CeilNormalizedValue(player_input(*player, action));
 
         if (is_shooting)
         {
-            Vector2 position = entity_center(player->entity);
-            f32 rotation = player->entity.rotation + PI;
+            f32 rotation = player->entity.rotation;
 
-            Vector2 unit_vector_movement_speed = vector2_unit_at_angle(rotation);
-            Vector2 unit_vector_position = vector2_unit_at_angle(rotation + (PI * 0.5));
+            Vector2 rotation_vector = Vector2UnitCirclePoint(rotation + PI_HALF); // To offset the shoot horizontally
+            Vector2 offset = Vector2Scale(rotation_vector, player->alternate_shooting ? -PLAYER_CANNONS_OFFSET : PLAYER_CANNONS_OFFSET);
+            offset = Vector2Subtract(offset, Vector2Scale(projectile_size, 0.5));
 
-            Vector2 offset_position =
-                Vector2Scale(unit_vector_position, player->shoot_from_left ? -PLAYER_CANNONS_OFFSET : PLAYER_CANNONS_OFFSET);
-            position = Vector2Add(position, offset_position);
+            Vector2 position = Vector2Add(entity_center(player->entity), offset);
 
             projectile_create(PROYECTILE_PLAYER,
                               (Entity){
                                   .position = position,
-                                  .size = PROJECTILE_STANDARD_SIZE,
-                                  .movement_speed = Vector2Scale(unit_vector_movement_speed, PROJECTILE_STANDARD_SPEED),
+                                  .size = projectile_size,
+                                  .movement_speed = Vector2Scale(Vector2UnitCirclePoint(rotation), projectile_speed),
                                   .velocity = {0},
-                                  .rotation = rotation + PROJECTILE_ROTATION,
+                                  .rotation = rotation,
+                                  .draw_rotation = PROJECTILE_DRAW_ROTATION,
                               },
-                              shoot_ab->damage, shoot_ab->range);
+                              ability->damage, ability->range);
 
-            cooldown_start(&shoot_ab->cooldown);
-            player->shoot_from_left = !player->shoot_from_left;
+            cooldown_start(&ability->cooldown);
+            player->alternate_shooting = !player->alternate_shooting;
         }
     }
+}
+
+void player_shoot_basic(Player *player)
+{
+    player_shoot(player, &player->shoot_basic, ACTION_ABILITY_SHOOT, PROJECTILE_BASIC_SIZE, PROJECTILE_BASIC_SPEED);
 }
 
 void player_shoot_missile(Player *player)
 {
-    AbilityProjectile *missile_ab = &player->shoot_missile;
-    if (is_cooldown_ready(missile_ab->cooldown))
-    {
-        bool is_shooting_missile = unit_ceil(player_input(*player, ACTION_ABILITY_SHOOT_MISSILE));
-
-        if (is_shooting_missile)
-        {
-            Vector2 position = entity_center(player->entity);
-            f32 rotation = player->entity.rotation + PI;
-
-            Vector2 unit_vector_movement_speed = vector2_unit_at_angle(rotation);
-            Vector2 unit_vector_position = vector2_unit_at_angle(rotation + (PI * 0.5));
-
-            Vector2 offset_position =
-                Vector2Scale(unit_vector_position, player->shoot_from_left ? -PLAYER_CANNONS_OFFSET : PLAYER_CANNONS_OFFSET);
-            position = Vector2Add(position, offset_position);
-
-            projectile_create(PROYECTILE_PLAYER,
-                              (Entity){
-                                  .position = position,
-                                  .size = PROJECTILE_MISSILE_SIZE,
-                                  .movement_speed = Vector2Add(player->entity.velocity,
-                                                               Vector2Scale(unit_vector_movement_speed, PROJECTILE_MISSILE_SPEED)),
-                                  .velocity = {0},
-                                  .rotation = rotation + PROJECTILE_ROTATION,
-                              },
-                              missile_ab->damage, missile_ab->range);
-
-            cooldown_start(&missile_ab->cooldown);
-            player->shoot_from_left = !player->shoot_from_left;
-        }
-    }
+    player_shoot(player, &player->shoot_missile, ACTION_ABILITY_SHOOT_MISSILE, PROJECTILE_MISSILE_SIZE, PROJECTILE_MISSILE_SPEED);
 }
 
 void player_aiming_sight_draw(Player player)
 {
-    Vector2 aim_start = Vector2Subtract(player.aiming_at, Vector2Scale(PLAYER_AIMING_SIGHT_SIZE, 0.5));
-    Vector2 aim_end = Vector2Add(aim_start, PLAYER_AIMING_SIGHT_SIZE);
+    Vector2 half_size = Vector2Scale(PLAYER_AIMING_SIGHT_SIZE, 0.5);
 
-    DrawLineEx(aim_start, aim_end, PLAYER_AIMING_SIGHT_THICKNESS, WHITE);
-    DrawLineEx((Vector2){aim_start.x, aim_end.y}, (Vector2){aim_end.x, aim_start.y}, PLAYER_AIMING_SIGHT_THICKNESS, WHITE);
+    Vector2 points[3] = {{-half_size.x, half_size.y}, {0, -half_size.y}, {half_size.x, half_size.y}};
+    Vector2 rotation_vector = Vector2UnitCirclePoint(player.entity.rotation);
+
+    for (u32 i = 0; i < 3; ++i) { points[i] = Vector2Subtract(player.aiming_at, Vector2Multiply(rotation_vector, points[i])); }
+    // for (u32 i = 0; i < 3; ++i) { points[i] = Vector2Add(points[i], player.aiming_at); }
+
+    DrawLineEx(points[0], points[1], PLAYER_AIMING_SIGHT_THICKNESS, WHITE);
+    DrawLineEx(points[2], points[1], PLAYER_AIMING_SIGHT_THICKNESS, WHITE);
 }
+
+#ifdef DEBUG
+#define player_rotation_draw(player)                                                                                                       \
+    do {                                                                                                                                   \
+        Font __font = state.fonts[0];                                                                                                      \
+        i32 __font_size = 16;                                                                                                              \
+                                                                                                                                           \
+        const char *__texts[8] = {"0 PI\n0 deg",   "1/4 PI\n45 deg",  "2/4 PI\n90 deg",  "3/4 PI\n135 deg",                                \
+                                  "1 PI\n180 deg", "5/4 PI\n225 deg", "6/4 PI\n270 deg", "7/4 PI\n315 deg"};                               \
+        f32 __rads = 0;                                                                                                                    \
+                                                                                                                                           \
+        Vector2 __entity_center = entity_center(player.entity);                                                                            \
+        f32 __radius = PLAYER_AIMING_SIGHT_MIN_DISTANCE * 2;                                                                               \
+                                                                                                                                           \
+        for (u32 __i = 0; __i < 8; ++__i, __rads += PI_QUARTER)                                                                            \
+        {                                                                                                                                  \
+            const char *__text = __texts[__i];                                                                                             \
+            Vector2 __pos = {cosf(__rads), sinf(__rads)};                                                                                  \
+            __pos = Vector2Scale(__pos, __radius);                                                                                         \
+            __pos = Vector2Add(__pos, __entity_center);                                                                                    \
+                                                                                                                                           \
+            Vector2 __text_measure = MeasureTextEx(__font, __text, __font_size, -1);                                                       \
+            Vector2 __text_center = Vector2Scale(__text_measure, 0.5);                                                                     \
+                                                                                                                                           \
+            __pos.y -= __text_measure.y * 0.5;                                                                                             \
+            switch (__i)                                                                                                                   \
+            {                                                                                                                              \
+            case 2:                                                                                                                        \
+            case 6: __pos.x -= __text_center.x; break;                                                                                     \
+            case 3:                                                                                                                        \
+            case 4:                                                                                                                        \
+            case 5: __pos.x -= __text_measure.x; break;                                                                                    \
+            }                                                                                                                              \
+                                                                                                                                           \
+            DrawLineV(__entity_center, Vector2Add(__text_center, __pos), Fade(SKYBLUE, 0.25));                                             \
+            DrawTextEx(__font, __text, __pos, __font_size, -1, BLUE);                                                                      \
+        }                                                                                                                                  \
+    } while (0)
+#else
+#define player_rotation_draw(player)
+#endif
 
 void player_draw(Player player)
 {
-    draw_entity(player.entity, locate_texture_spaceship(player.type));
+    entity_draw(player.entity, locate_texture_spaceship(player.type));
     player_aiming_sight_draw(player);
+    player_rotation_draw(player);
 }
 
 Enemy *enemy_create(SpaceshipType type, Vector2 position, Vector2 movement_speed, f32 rotation)
 {
     Enemy enemy = {.entity = {.position = position, .size = ENEMY_SIZE, .movement_speed = movement_speed, .rotation = rotation},
                    .type = type,
-                   .shoot = ABILITY_SHOOT};
+                   .shoot_basic = ABILITY_SHOOT};
 
     return (Enemy *)data_object_pool_add(&state.enemies, &enemy);
 }
