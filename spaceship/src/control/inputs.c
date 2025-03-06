@@ -1,7 +1,6 @@
 #include "inputs.h"
-#include "raylib.h"
-#include "raymath.h"
-#include "types.h"
+#include "debug.h"
+#include "rayheader.h"
 
 bool mouse_button_down(MouseButton button) { return IsMouseButtonDown(button); }
 
@@ -29,7 +28,8 @@ bool gamepad_button_down(InputDevice gamepad, GamepadButton button) { return IsG
 
 f32 gamepad_trigger_pressure(InputDevice gamepad, GamepadTrigger trigger)
 {
-    f32 magnitude = GetGamepadAxisMovement(gamepad, trigger);
+    f32 magnitude = GetGamepadAxisMovement(gamepad, trigger); // -1 to 1
+    magnitude = (magnitude + 1) * 0.5;
     return minmax(magnitude, 0, 1);
 }
 
