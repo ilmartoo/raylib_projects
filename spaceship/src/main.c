@@ -22,8 +22,8 @@
 #define GAME_TITLE     "Spaceship"
 #define GAME_ICON_FILE "spaceship-icon.png"
 
-#define INITIAL_SCREEN_HEIGHT 600
-#define INITIAL_SCREEN_WIDTH  1200
+#define INITIAL_SCREEN_HEIGHT 1000
+#define INITIAL_SCREEN_WIDTH  1600
 
 // ----------------------------------------------------------------------------
 // ---- Debug -----------------------------------------------------------------
@@ -41,6 +41,20 @@ void debug_initialize(void)
     dbg_panels[1] = debug_panel_create(GREEN, section_font, entry_font);
 }
 
+void debug_input(void)
+{
+    if (IsKeyPressed(KEY_P)) { state.time_running = !state.time_running; }
+
+    bool increase_speed = IsKeyPressed(KEY_UP);
+    bool decrease_speed = IsKeyPressed(KEY_DOWN);
+#define MAX_TIME_SPEED_MAGNITUDE 5
+    if (increase_speed != decrease_speed)
+    {
+        if (increase_speed && state.time_speed_magnitude < MAX_TIME_SPEED_MAGNITUDE) { ++state.time_speed_magnitude; }
+        if (decrease_speed && state.time_speed_magnitude > -MAX_TIME_SPEED_MAGNITUDE) { --state.time_speed_magnitude; }
+    }
+}
+
 void debug_update(void)
 {
     DebugPanel *timings_panel = dbg_panels[0], *entities_panel = dbg_panels[1];
@@ -49,34 +63,28 @@ void debug_update(void)
 
     debug_panel_add_section(timings_panel, "TIMINGS");
     debug_panel_add_entry(timings_panel, TextFormat("%d fps", GetFPS()));
-
-    debug_panel_add_section(entities_panel, "PLAYERS");
-    debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.players)));
-    debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.players)));
-
-    debug_panel_add_section(entities_panel, "PLAYER PROYECTILES");
-    debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.projectiles_players)));
-    debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.projectiles_players)));
+    debug_panel_add_entry(timings_panel, TextFormat("%d%% speed", 100 + 20 * state.time_speed_magnitude));
+    debug_panel_add_entry(timings_panel, TextFormat("Game %s", state.time_running ? "running" : "paused"));
 
     data_object_pool_for_each_object(&state.players, Player, iter)
     {
         debug_panel_add_section(entities_panel, TextFormat("PLAYER %d", iter.index));
         debug_panel_add_entry(entities_panel, TextFormat("Rotation: %.2f deg", RAD2DEG * iter.data->entity.rotation));
         debug_panel_add_entry(entities_panel,
-                              TextFormat("Movement: X [%.2f, %.2f] Y [%.2f, %.2f]", player_input(*iter.data, ACTION_MOVE_DOWN),
-                                         player_input(*iter.data, ACTION_MOVE_UP), player_input(*iter.data, ACTION_MOVE_LEFT),
-                                         player_input(*iter.data, ACTION_MOVE_RIGHT)));
-        debug_panel_add_entry(entities_panel,
                               TextFormat("Velocity: (%.2f, %.2f)", iter.data->entity.velocity.x, iter.data->entity.velocity.y));
     }
 
-    // debug_panel_add_section(entities_panel, "ENEMIES");
-    // debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.enemies)));
-    // debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.enemies)));
+    debug_panel_add_section(entities_panel, "PLAYER PROYECTILES");
+    debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.projectiles_players)));
+    debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.projectiles_players)));
 
-    // debug_panel_add_section(entities_panel, "ENEMY PROYECTILES");
-    // debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.projectiles_enemies)));
-    // debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.projectiles_enemies)));
+    debug_panel_add_section(entities_panel, "ENEMIES");
+    debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.enemies)));
+    debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.enemies)));
+
+    debug_panel_add_section(entities_panel, "ENEMY PROYECTILES");
+    debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.projectiles_enemies)));
+    debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.projectiles_enemies)));
 }
 
 void debug_clear(void)
@@ -125,7 +133,7 @@ void update_players(void)
     {
         player_move(iter.data);
         player_aim(iter.data);
-        player_shoot(iter.data);
+        player_shoot_basic(iter.data);
         player_shoot_missile(iter.data);
     }
 }
@@ -136,15 +144,9 @@ void update_entities(void)
     update_proyectiles();
 }
 
-void update_game_state(void)
-{
-    state.time_elapsed = GetTime();
-    state.time_delta = GetFrameTime();
-}
-
 void update(void)
 {
-    update_game_state();
+    game_state_update();
     update_entities();
 }
 
@@ -233,8 +235,15 @@ void loop(void)
 {
     while (!WindowShouldClose()) // Detect window close button or defined exit key
     {
-        update();
-        // check_collisions();
+#ifdef DEBUG
+        debug_input();
+#endif
+
+        if (state.time_running)
+        {
+            update();
+            // check_collisions();
+        }
 
 #ifdef DEBUG
         debug_update();

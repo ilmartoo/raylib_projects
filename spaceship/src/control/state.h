@@ -25,7 +25,10 @@ typedef struct GameState
 {
 
     f64 time_elapsed;
-    f32 time_delta;
+    f32 time_delta_real;
+    f32 time_delta_simulation;
+    i16 time_speed_magnitude;
+    bool time_running;
 
     DataObjectPool players;
     DataObjectPool enemies;
@@ -48,6 +51,7 @@ typedef struct GameState
 #define PROJECTILE_ENEMY_TEXTURE_POS  ((Rectangle){688, 160, 64, 127})
 
 void game_state_initialize(void);
+void game_state_update(void);
 void game_state_clear(void);
 
 Rectangle locate_texture_spaceship(SpaceshipType type);   // Spaceship texture location
