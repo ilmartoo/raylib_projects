@@ -4,8 +4,7 @@
 
 #include "data_object_pool.h"
 #include "entities.h"
-#include "raylib.h"
-#include "types.h"
+#include "rayheader.h"
 
 // ----------------------------------------------------------------------------
 // ---- Font types ------------------------------------------------------------

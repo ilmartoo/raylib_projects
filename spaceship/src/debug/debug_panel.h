@@ -3,7 +3,7 @@
 #define __SOURCE_DEBUG_PANEL_H_
 
 #include "arena.h"
-#include "raylib.h"
+#include "rayheader.h"
 
 typedef struct DebugPanelEntry
 {

@@ -1,8 +1,7 @@
 #include "state.h"
 #include "entities.h"
 #include "files.h"
-#include "raylib.h"
-#include "raymath.h"
+#include "rayheader.h"
 
 GameState state = {0};
 

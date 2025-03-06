@@ -4,6 +4,8 @@
 
 /* Header to define the needed raylib and helper headers for basic functionality */
 
+#include <math.h>
+
 #include "mathematics.h"
 #include "raylib.h"
 #include "raymath.h"

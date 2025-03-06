@@ -2,8 +2,7 @@
 #ifndef __SOURCE_INPUTS_H_
 #define __SOURCE_INPUTS_H_
 
-#include "raylib.h"
-#include "types.h"
+#include "rayheader.h"
 
 // ----------------------------------------------------------------------------
 // ---- Definitions -----------------------------------------------------------

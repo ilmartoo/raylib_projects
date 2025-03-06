@@ -4,8 +4,7 @@
 #include "arena.h"
 #include "debug_panel.h"
 #include "memory_utils.h"
-#include "raylib.h"
-#include "types.h"
+#include "rayheader.h"
 
 #define DEBUG_PANEL_SECTION_FONT_SIZE 24
 #define DEBUG_PANEL_ENTRY_FONT_SIZE   24

@@ -1,4 +1,3 @@
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -10,10 +9,8 @@
 #include "files.h"
 #include "inputs.h"
 #include "memory_utils.h"
-#include "raylib.h"
-#include "raymath.h"
+#include "rayheader.h"
 #include "state.h"
-#include "types.h"
 
 // ----------------------------------------------------------------------------
 // ---- Constants -------------------------------------------------------------

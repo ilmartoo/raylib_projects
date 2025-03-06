@@ -3,13 +3,15 @@
 #include "abilities.h"
 #include "debug.h"
 #include "entities.h"
-#include "mathematics.h"
-#include "raymath.h"
+#include "rayheader.h"
 #include "state.h"
 
 #ifdef DEBUG
 #define entity_bounding_box_draw(center, radius, color, fill)                                                                              \
-    (fill ? DrawCircleV(center, radius, color) : DrawCircleLinesV(center, radius, color))
+    do {                                                                                                                                   \
+        if (fill) { DrawCircleV(center, radius, color); }                                                                                  \
+        else { DrawCircleLinesV(center, radius, color); }                                                                                  \
+    } while (0)
 #else
 #define entity_bounding_box_draw(center, radius, color, fill)
 #endif
