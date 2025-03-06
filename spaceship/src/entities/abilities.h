@@ -17,6 +17,8 @@ typedef struct Cooldown
 void cooldown_start(Cooldown *cooldown);   // Starts a cooldown
 bool is_cooldown_ready(Cooldown cooldown); // Check if the cooldown is up
 
+#define COOLDOWN_DEFINITION(time) ((Cooldown){.down_time = time, .available_at = 0})
+
 // ----------------------------------------------------------------------------
 // ---- Projectile Abilities --------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -29,7 +31,19 @@ typedef struct AbilityProjectile
     Cooldown cooldown;
 } AbilityProjectile;
 
-#define ABILITY_SHOOT         ((AbilityProjectile){.damage = 10, .range = 400, .cooldown = {.down_time = 0.1f, .available_at = 0}})
-#define ABILITY_SHOOT_MISSILE ((AbilityProjectile){.damage = 80, .range = 400, .cooldown = {.down_time = 10, .available_at = 0}})
+#define ABILITY_SHOOT_DAMAGE        10
+#define ABILITY_SHOOT_RANGE         400
+#define ABILITY_SHOOT_COOLDOWN_TIME 0.1f
+#define ABILITY_SHOOT                                                                                                                      \
+    ((AbilityProjectile){                                                                                                                  \
+        .damage = ABILITY_SHOOT_DAMAGE, .range = ABILITY_SHOOT_RANGE, .cooldown = COOLDOWN_DEFINITION(ABILITY_SHOOT_COOLDOWN_TIME)})
+
+#define ABILITY_SHOOT_MISSILE_DAMAGE        80
+#define ABILITY_SHOOT_MISSILE_RANGE         400
+#define ABILITY_SHOOT_MISSILE_COOLDOWN_TIME 6
+#define ABILITY_SHOOT_MISSILE                                                                                                              \
+    ((AbilityProjectile){.damage = ABILITY_SHOOT_MISSILE_DAMAGE,                                                                           \
+                         .range = ABILITY_SHOOT_MISSILE_RANGE,                                                                             \
+                         .cooldown = COOLDOWN_DEFINITION(ABILITY_SHOOT_MISSILE_COOLDOWN_TIME)})
 
 #endif // __SOURCE_ABILITIES_H_
