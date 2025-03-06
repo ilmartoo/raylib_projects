@@ -5,13 +5,19 @@
 #include "raylib.h"
 #include "types.h"
 
-bool unit_ceil(f32 value);  // Ceils a [0..1] value
-bool unit_floor(f32 value); // Floors a [0..1] value
-bool unit_round(f32 value); // Rounds a [0..1] value
+#define PI_QUARTER 0.7853981634f //  45 degs
+#define PI_HALF    1.5707963268f //  90 degs
+#define PI_3HALFS  4.7123889804f // 270 degs
+#define TAU        6.2831853072f // 360 degs
 
-Vector2 vector2_unit_at_angle(f32 radians);
+bool CeilNormalizedValue(f32 value);  // Ceils a [0..1] value
+bool FloorNormalizedValue(f32 value); // Floors a [0..1] value
+bool RoundNormalizedValue(f32 value); // Rounds a [0..1] value
 
-f32 rad_to_deg(f32 radians);
-f32 deg_to_rad(f32 degrees);
+Vector2 Vector2From(f32 x, f32 y);
+Vector2 Vector2UnitCirclePoint(f32 rads);
+
+f32 Rad2Deg(f32 rads);
+f32 Deg2Rad(f32 degs);
 
 #endif // __SOURCE_MATHEMATICS_H_

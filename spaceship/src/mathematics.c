@@ -6,14 +6,16 @@
 #include "raylib.h"
 #include "types.h"
 
-bool unit_ceil(f32 value) { return value > 0 ? 1 : 0; }
+bool CeilNormalizedValue(f32 value) { return value > 0 ? 1 : 0; }
 
-bool unit_floor(f32 value) { return 1.f < value ? 0 : 1; }
+bool FloorNormalizedValue(f32 value) { return 1.f < value ? 0 : 1; }
 
-bool unit_round(f32 value) { return value >= 0.5f ? 1 : 0; }
+bool RoundNormalizedValue(f32 value) { return value >= 0.5f ? 1 : 0; }
 
-Vector2 vector2_unit_at_angle(f32 radians) { return (Vector2){cosf(radians), sinf(radians)}; }
+Vector2 Vector2From(f32 x, f32 y) { return (Vector2){x, y}; }
 
-f32 rad_to_deg(f32 radians) { return radians * RAD2DEG; }
+Vector2 Vector2UnitCirclePoint(f32 rads) { return (Vector2){cosf(rads), sinf(rads)}; }
 
-f32 deg_to_rad(f32 degrees) { return degrees * DEG2RAD; }
+f32 Rad2Deg(f32 rads) { return rads * RAD2DEG; }
+
+f32 Deg2Rad(f32 degs) { return degs * DEG2RAD; }
