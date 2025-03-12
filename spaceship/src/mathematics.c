@@ -8,7 +8,7 @@
 
 bool CeilNormalizedValue(f32 value) { return value > 0 ? 1 : 0; }
 
-bool FloorNormalizedValue(f32 value) { return 1.f < value ? 0 : 1; }
+bool FloorNormalizedValue(f32 value) { return 1 < value ? 0 : 1; }
 
 bool RoundNormalizedValue(f32 value) { return value >= 0.5f ? 1 : 0; }
 

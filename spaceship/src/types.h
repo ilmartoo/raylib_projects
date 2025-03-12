@@ -39,7 +39,11 @@ typedef double f64; // 64 bit float type
 
 // Allocates a new element in the heap
 #define reserve(data_type) (data_type *)malloc(sizeof(data_type))
+// Allocates a new element in the heap and sets the memory to 0
+#define reserve_zero(data_type) (data_type *)calloc(1, sizeof(data_type))
 // Allocates a new array of elements in the heap
 #define reserve_array(data_type, number_of_elements) (data_type *)malloc(sizeof(data_type) * number_of_elements)
+// Allocates a new array of elements in the heap and sets the memory to 0
+#define reserve_array(data_type, number_of_elements) (data_type *)calloc(number_of_elements, sizeof(data_type))
 
 #endif // __ILMARTO_TYPES_H_

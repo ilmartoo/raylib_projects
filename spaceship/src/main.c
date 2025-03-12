@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "arena.h"
-#include "data_object_pool.h"
+#include "object_pool.h"
 #include "debug.h"
 #include "debug_panel.h"
 #include "entities.h"
@@ -33,9 +33,10 @@ DebugPanel *dbg_panels[2];
 
 void debug_initialize(void)
 {
-    Font section_font = font(FONT_ATKINSON_BOLD), entry_font = font(FONT_ATKINSON_REGULAR);
-    dbg_panels[0] = debug_panel_create(DARKGREEN, section_font, entry_font);
-    dbg_panels[1] = debug_panel_create(GREEN, section_font, entry_font);
+    Font section_font = FontFromFamily(FONT_ATKINSON_BOLD);
+    Font entry_font = FontFromFamily(FONT_ATKINSON_REGULAR);
+    dbg_panels[0] = DebugPanelCreate(DARKGREEN, section_font, entry_font);
+    dbg_panels[1] = DebugPanelCreate(GREEN, section_font, entry_font);
 }
 
 void debug_input(void)
@@ -44,59 +45,58 @@ void debug_input(void)
 
     bool increase_speed = IsKeyPressed(KEY_UP);
     bool decrease_speed = IsKeyPressed(KEY_DOWN);
-#define MAX_TIME_SPEED_MAGNITUDE 5
     if (increase_speed != decrease_speed)
     {
-        if (increase_speed && state.time_speed_magnitude < MAX_TIME_SPEED_MAGNITUDE) { ++state.time_speed_magnitude; }
-        if (decrease_speed && state.time_speed_magnitude > -MAX_TIME_SPEED_MAGNITUDE) { --state.time_speed_magnitude; }
+        if (increase_speed && state.time_speed_magnitude < GAME_STATE_TIME_SPEED_MAGNITUDE_ABSOLUTE_MAX) { ++state.time_speed_magnitude; }
+        if (decrease_speed && state.time_speed_magnitude > -GAME_STATE_TIME_SPEED_MAGNITUDE_ABSOLUTE_MAX) { --state.time_speed_magnitude; }
     }
 }
 
 void debug_update(void)
 {
     DebugPanel *timings_panel = dbg_panels[0], *entities_panel = dbg_panels[1];
-    debug_panel_clean(timings_panel);
-    debug_panel_clean(entities_panel);
+    DebugPanelClean(timings_panel);
+    DebugPanelClean(entities_panel);
 
-    debug_panel_add_section(timings_panel, "TIMINGS");
-    debug_panel_add_entry(timings_panel, TextFormat("%d fps", GetFPS()));
-    debug_panel_add_entry(timings_panel, TextFormat("%d%% speed", 100 + 20 * state.time_speed_magnitude));
-    debug_panel_add_entry(timings_panel, TextFormat("Game %s", state.time_running ? "running" : "paused"));
+    DebugPanelAddTitle(timings_panel, "TIMINGS");
+    DebugPanelAddEntry(timings_panel, TextFormat("%d fps", GetFPS()));
+    DebugPanelAddEntry(timings_panel, TextFormat("%d%% speed", 100 + 20 * state.time_speed_magnitude));
+    DebugPanelAddEntry(timings_panel, TextFormat("Game %s", state.time_running ? "running" : "paused"));
 
-    data_object_pool_for_each_object(&state.players, Player, iter)
+    ObjectPoolForEachObject(&state.players, Player, iter)
     {
-        debug_panel_add_section(entities_panel, TextFormat("PLAYER %d", iter.index));
-        debug_panel_add_entry(entities_panel, TextFormat("Rotation: %.2f deg", RAD2DEG * iter.data->entity.rotation));
-        debug_panel_add_entry(entities_panel,
-                              TextFormat("Velocity: (%.2f, %.2f)", iter.data->entity.velocity.x, iter.data->entity.velocity.y));
+        DebugPanelAddTitle(entities_panel, TextFormat("PLAYER %d", iter.index));
+        DebugPanelAddEntry(entities_panel, TextFormat("Rotation: %.2f deg", RAD2DEG * iter.object->entity.rotation));
+        DebugPanelAddEntry(entities_panel,
+                           TextFormat("Velocity: (%.2f, %.2f)", iter.object->entity.velocity.x, iter.object->entity.velocity.y));
     }
 
-    debug_panel_add_section(entities_panel, "PLAYER PROYECTILES");
-    debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.projectiles_players)));
-    debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.projectiles_players)));
+    DebugPanelAddTitle(entities_panel, "PLAYER PROYECTILES");
+    DebugPanelAddEntry(entities_panel, TextFormat("Chunks: %u", ObjectPoolChunkCount(state.projectiles_players)));
+    DebugPanelAddEntry(entities_panel, TextFormat(" Valid: %u", ObjectPoolObjectCount(state.projectiles_players)));
 
-    debug_panel_add_section(entities_panel, "ENEMIES");
-    debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.enemies)));
-    debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.enemies)));
+    DebugPanelAddTitle(entities_panel, "ENEMIES");
+    DebugPanelAddEntry(entities_panel, TextFormat("Chunks: %u", ObjectPoolChunkCount(state.enemies)));
+    DebugPanelAddEntry(entities_panel, TextFormat(" Valid: %u", ObjectPoolObjectCount(state.enemies)));
 
-    debug_panel_add_section(entities_panel, "ENEMY PROYECTILES");
-    debug_panel_add_entry(entities_panel, TextFormat("Chunks: %u", data_object_pool_chunk_count(state.projectiles_enemies)));
-    debug_panel_add_entry(entities_panel, TextFormat(" Valid: %u", data_object_pool_object_count(state.projectiles_enemies)));
+    DebugPanelAddTitle(entities_panel, "ENEMY PROYECTILES");
+    DebugPanelAddEntry(entities_panel, TextFormat("Chunks: %u", ObjectPoolChunkCount(state.projectiles_enemies)));
+    DebugPanelAddEntry(entities_panel, TextFormat(" Valid: %u", ObjectPoolObjectCount(state.projectiles_enemies)));
 }
 
 void debug_clear(void)
 {
-    debug_panel_delete(dbg_panels[0]);
-    debug_panel_delete(dbg_panels[1]);
+    DebugPanelDelete(dbg_panels[0]);
+    DebugPanelDelete(dbg_panels[1]);
 }
 
 void debug_all()
 {
-    Vector2 timings_size = debug_panel_measure(*dbg_panels[0]);
+    Vector2 timings_size = DebugPanelMeasures(*dbg_panels[0]);
     Vector2 timings_pos = DEBUG_PANEL_SCREEN_POSITION;
     Vector2 entities_pos = (Vector2){timings_pos.x, (timings_pos.y * 2) + timings_size.y};
-    debug_panel_draw(*dbg_panels[0], timings_pos);
-    debug_panel_draw(*dbg_panels[1], entities_pos);
+    DebugPanelDraw(*dbg_panels[0], timings_pos);
+    DebugPanelDraw(*dbg_panels[1], entities_pos);
 
     // f32 rad = 0;
     // u32 spacing = 100;
@@ -112,26 +112,26 @@ void debug_all()
 
 void update_proyectiles(void)
 {
-    DataObjectPool *pool;
-    data_object_pool_for_each_object(pool = &state.projectiles_players, Projectile, iter)
+    ObjectPool *pool;
+    ObjectPoolForEachObject(pool = &state->projectiles_players, Projectile, iter)
     {
-        if (!projectile_move(iter.data)) { data_object_pool_pop(pool, iter.index); }
+        if (!ProjectileMove(iter.object)) { ObjectPoolPop(pool, iter.index); }
     }
 
-    data_object_pool_for_each_object(pool = &state.projectiles_enemies, Projectile, iter)
+    ObjectPoolForEachObject(pool = &state->projectiles_enemies, Projectile, iter)
     {
-        if (!projectile_move(iter.data)) { data_object_pool_pop(pool, iter.index); }
+        if (!ProjectileMove(iter.object)) { ObjectPoolPop(pool, iter.index); }
     }
 }
 
 void update_players(void)
 {
-    data_object_pool_for_each_object(&state.players, Player, iter)
+    ObjectPoolForEachObject(&state->players, Player, iter)
     {
-        player_move(iter.data);
-        player_aim(iter.data);
-        player_shoot_basic(iter.data);
-        player_shoot_missile(iter.data);
+        PlayerMove(iter.object);
+        PlayerAim(iter.object);
+        PlayerShootBasic(iter.object);
+        PlayerShootMissile(iter.object);
     }
 }
 
@@ -143,7 +143,7 @@ void update_entities(void)
 
 void update(void)
 {
-    game_state_update();
+    GameStateUpdate();
     update_entities();
 }
 
@@ -153,18 +153,18 @@ void update(void)
 
 void draw_players(void)
 {
-    data_object_pool_for_each_object(&state.players, Player, iter) { player_draw(*iter.data); }
+    ObjectPoolForEachObject(&state->players, Player, iter) { PlayerDraw(*iter.object); }
 }
 
 void draw_enemies(void)
 {
-    data_object_pool_for_each_object(&state.enemies, Enemy, iter) { enemy_draw(*iter.data); }
+    ObjectPoolForEachObject(&state->enemies, Enemy, iter) { EnemyDraw(*iter.object); }
 }
 
 void draw_proyectiles(void)
 {
-    data_object_pool_for_each_object(&state.projectiles_players, Projectile, iter) { proyectile_draw(*iter.data); }
-    data_object_pool_for_each_object(&state.projectiles_enemies, Projectile, iter) { proyectile_draw(*iter.data); }
+    ObjectPoolForEachObject(&state->projectiles_players, Projectile, iter) { ProjectileDraw(*iter.object); }
+    ObjectPoolForEachObject(&state->projectiles_enemies, Projectile, iter) { ProjectileDraw(*iter.object); }
 }
 
 void draw(void)
@@ -200,7 +200,10 @@ void setup_window(void)
     UnloadImage(icon);
 }
 
-void entities_initialize(void) { player_create(SPACESHIP_FRIENDLY_BASE, (Vector2){GetScreenWidth() / 2.f, GetScreenHeight() / 2.f}); }
+void entities_initialize(void)
+{
+    PlayerCreate(SPACESHIP_FRIENDLY_BASE, Vector2Scale(Vector2From(GetScreenWidth(), GetScreenHeight()), 0.5f));
+}
 
 void initialize(void)
 {
@@ -209,7 +212,7 @@ void initialize(void)
     SetTargetFPS(144);
     SetExitKey(KEY_NULL);
 
-    game_state_initialize();
+    GameStateInitialization();
 
 #ifdef DEBUG
     debug_initialize();
@@ -221,7 +224,7 @@ void initialize(void)
 void clear(void)
 {
     CloseWindow();
-    game_state_clear();
+    GameStateCleanup();
 
 #ifdef DEBUG
     debug_clear();
@@ -236,7 +239,7 @@ void loop(void)
         debug_input();
 #endif
 
-        if (state.time_running)
+        if (state->time_running)
         {
             update();
             // check_collisions();
