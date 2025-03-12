@@ -5,43 +5,27 @@
 #include "arena.h"
 #include "rayheader.h"
 
-typedef struct DebugPanelEntry
-{
-    const char *text;
-    Vector2 text_measures;
-    /* ... */
-    struct DebugPanelEntry *next;
-} DebugPanelEntry;
-
-typedef struct DebugPanelSection
-{
-    const char *title;
-    Vector2 text_measures;
-    /* ... */
-    struct
-    {
-        DebugPanelEntry *first;
-        DebugPanelEntry *last;
-    } entries;
-    struct DebugPanelSection *next;
-} DebugPanelSection;
-
 typedef struct DebugPanel
 {
     Arena arena;
     Color background_color;
-    struct
-    {
-        Font section;
-        Font entry;
-    } fonts;
-    /* ... */
-    struct
-    {
-        DebugPanelSection *first;
-        DebugPanelSection *last;
-    } sections;
+
+    Font font_title;
+    Font font_entry;
+
+    u32 titles;
+    u32 entries;
+    Vector2 content_size;
 } DebugPanel;
+
+#define DEBUG_PANEL_TITLE_FONT_SIZE 24
+#define DEBUG_PANEL_ENTRY_FONT_SIZE 24
+#define DEBUG_PANEL_FONT_SPACING    0
+
+#define DEBUG_PANEL_BORDER_SIZE   2
+#define DEBUG_PANEL_PADDING_X     6
+#define DEBUG_PANEL_PADDING_Y     2
+#define DEBUG_PANEL_TITLE_SPACING 4
 
 /**
  * Creates a debug panel.
@@ -50,42 +34,42 @@ typedef struct DebugPanel
  * @param entry_font Font for the entry text.
  * @returns A new debug panel.
  */
-DebugPanel *debug_panel_create(Color background_color, Font section_font, Font entry_font);
+DebugPanel *DebugPanelCreate(Color background_color, Font title_font, Font entry_font);
 /**
  * Deletes a debug panel.
  * @param panel Panel to delete.
  */
-void debug_panel_delete(DebugPanel *panel);
+void DebugPanelDelete(DebugPanel *panel);
 
 /**
  * Appends a section to a debug panel.
  * @param panel Panel to use.
  * @param title Title of the section. Can be null.
  */
-void debug_panel_add_section(DebugPanel *panel, const char *title);
+void DebugPanelAddTitle(DebugPanel *panel, const char *title);
 /**
  * Appends an entry to the last section of a debug panel.
  * @param panel Panel to use.
- * @param text Text of the entry.
+ * @param text Text of the entry. Can be null.
  */
-void debug_panel_add_entry(DebugPanel *panel, const char *text);
+void DebugPanelAddEntry(DebugPanel *panel, const char *text);
 
 /**
  * Cleans a debug panel for a new frame.
  * @param panel Panel to clean.
  */
-void debug_panel_clean(DebugPanel *panel);
+void DebugPanelClean(DebugPanel *panel);
 /**
  * Measures a debug panel.
  * @param panel Panel to measure.
  */
-Vector2 debug_panel_measure(DebugPanel panel);
+Vector2 DebugPanelMeasures(DebugPanel panel);
 
 /**
  * Draws a debug panel.
  * @param panel Panel to draw.
  * @param screen_position Screen position where to draw the panel.
  */
-void debug_panel_draw(DebugPanel panel, Vector2 screen_position);
+void DebugPanelDraw(DebugPanel panel, Vector2 screen_position);
 
 #endif // __SOURCE_DEBUG_PANEL_H_

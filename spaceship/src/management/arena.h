@@ -15,18 +15,18 @@ typedef struct Arena
  * Creates an arena with the default size.
  * @returns New arena.
  */
-Arena arena_create(void);
+Arena ArenaCreate(void);
 /**
  * Creates an arena.
  * @param size Size in bytes of the arena.
  * @returns New arena.
  */
-Arena areana_create_custom(size_t size);
+Arena ArenaCreateCustom(size_t size);
 /**
  * Deletes an arena.
  * @param arena Arena to use.
  */
-void areana_delete(Arena *arena);
+void ArenaDelete(Arena *arena);
 
 /**
  * Reserves some bytes on an arena.
@@ -34,28 +34,28 @@ void areana_delete(Arena *arena);
  * @param size Number of bytes to reserve.
  * @returns Pointer to the reserved memory.
  */
-void *arena_push(Arena *arena, size_t size);
+void *ArenaPush(Arena *arena, size_t size);
 /**
  * Reserves some bytes for a type on an arena.
  * @param arena Arena to use.
  * @param type Type of the data.
  * @returns Pointer to the reserved memory.
  */
-#define arena_push_type(arena, type) (type *)arena_push((arena), sizeof(type))
+#define ArenaPushType(arena, type) (type *)arena_push((arena), sizeof(type))
 /**
  * Reserves some bytes on an arena and set them to 0.
  * @param arena Arena to use.
  * @param size Number of bytes to reserve.
  * @returns Pointer to the reserved memory.
  */
-void *arena_push_zero(Arena *arena, size_t size);
+void *ArenaPushZero(Arena *arena, size_t size);
 /**
  * Reserves some bytes for a type on an arena and set them to 0.
  * @param arena Arena to use.
  * @param type Type of the data.
  * @returns Pointer to the reserved memory.
  */
-#define arena_push_type_zero(arena, type) (type *)arena_push_zero((arena), sizeof(type))
+#define ArenaPushTypeZero(arena, type) (type *)arena_push_zero((arena), sizeof(type))
 /**
  * Reserves some bytes for a type array on an arena.
  * @param arena Arena to use.
@@ -63,7 +63,7 @@ void *arena_push_zero(Arena *arena, size_t size);
  * @param count Size of the array.
  * @returns Pointer to the reserved memory.
  */
-#define arena_push_array(arena, type, count) (type *)arena_push((arena), sizeof(type) * (count))
+#define ArenaPushArray(arena, type, count) (type *)arena_push((arena), sizeof(type) * (count))
 /**
  * Reserves some bytes for a type array on an arena and set them to 0.
  * @param arena Arena to use.
@@ -71,38 +71,38 @@ void *arena_push_zero(Arena *arena, size_t size);
  * @param count Size of the array.
  * @returns Pointer to the reserved memory.
  */
-#define arena_push_array_zero(arena, type, count) (type *)arena_push_zero((arena), sizeof(type) * (count))
+#define ArenaPushArrayZero(arena, type, count) (type *)arena_push_zero((arena), sizeof(type) * (count))
 
 /**
  * Frees some bytes from an arena.
  * @param arena Arena to use.
  * @param size Number of bytes to free.
  */
-void arena_pop(Arena *arena, size_t size);
+void ArenaPop(Arena *arena, size_t size);
 /**
  * Frees some bytes from a type array on an arena.
  * @param arena Arena to use.
  * @param type Type of the data.
  */
-#define arena_pop_type(arena, type) arena_pop((arena), sizeof(type))
+#define ArenaPopType(arena, type) arena_pop((arena), sizeof(type))
 /**
  * Frees some bytes from a type array on an arena.
  * @param arena Arena to use.
  * @param type Type of the array's data.
  * @param count Size of the array.
  */
-#define arena_pop_array(arena, type, count) arena_pop((arena), sizeof(type) * (count))
+#define ArenaPopArray(arena, type, count) arena_pop((arena), sizeof(type) * (count))
 /**
  * Frees all bytes from an arena.
  * @param arena Arena to use.
  */
-void arena_clear(Arena *arena);
+void ArenaClear(Arena *arena);
 
 /**
  * Gets the used space of an arena.
  * @param arena Arena to use.
  * @returns Used space.
  */
-size_t arena_size(Arena arena);
+size_t ArenaSize(Arena arena);
 
 #endif // __ILMARTO_ARENA_H_

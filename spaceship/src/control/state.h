@@ -2,7 +2,7 @@
 #ifndef __SOURCE_STATE_H_
 #define __SOURCE_STATE_H_
 
-#include "data_object_pool.h"
+#include "object_pool.h"
 #include "entities.h"
 #include "rayheader.h"
 
@@ -22,17 +22,18 @@ typedef enum FontFamily
 
 typedef struct GameState
 {
-
     f64 time_elapsed;
     f32 time_delta_real;
     f32 time_delta_simulation;
     i16 time_speed_magnitude;
     bool time_running;
 
-    DataObjectPool players;
-    DataObjectPool enemies;
-    DataObjectPool projectiles_players;
-    DataObjectPool projectiles_enemies;
+    ObjectPool input_profiles;
+
+    ObjectPool players;
+    ObjectPool enemies;
+    ObjectPool projectiles_players;
+    ObjectPool projectiles_enemies;
 
     Texture2D spritesheet;
     Rectangle spritesheet_locations_spaceships[4];
@@ -41,26 +42,28 @@ typedef struct GameState
     Font fonts[2];
 } GameState;
 
-#define SPACESHIP_FRIENDLY_BASE_TEXTURE_POS     ((Rectangle){320, 0, 96, 96})
-#define SPACESHIP_FRIENDLY_UPGRADED_TEXTURE_POS ((Rectangle){304, 384, 96, 96})
-#define SPACESHIP_ENEMY_BASE_TEXTURE_POS        ((Rectangle){400, 256, 96, 96})
-#define SPACESHIP_ENEMY_UPGRADED_TEXTURE_POS    ((Rectangle){512, 0, 96, 96})
+#define GAME_STATE_TIME_SPEED_MAGNITUDE_ABSOLUTE_MAX 5
 
-#define PROJECTILE_PLAYER_TEXTURE_POS ((Rectangle){608, 0, 64, 127})
-#define PROJECTILE_ENEMY_TEXTURE_POS  ((Rectangle){688, 160, 64, 127})
+#define TEXTURE_POS_SPACESHIP_FRIENDLY_BASE     ((Rectangle){320, 0, 96, 96})
+#define TEXTURE_POS_SPACESHIP_FRIENDLY_UPGRADED ((Rectangle){304, 384, 96, 96})
+#define TEXTURE_POS_SPACESHIP_ENEMY_BASE        ((Rectangle){400, 256, 96, 96})
+#define TEXTURE_POS_SPACESHIP_ENEMY_UPGRADED    ((Rectangle){512, 0, 96, 96})
 
-void game_state_initialize(void);
-void game_state_update(void);
-void game_state_clear(void);
+#define TEXTURE_POS_PROJECTILE_PLAYER ((Rectangle){608, 0, 64, 127})
+#define TEXTURE_POS_PROJECTILE_ENEMY  ((Rectangle){688, 160, 64, 127})
 
-Rectangle locate_texture_spaceship(SpaceshipType type);   // Spaceship texture location
-Rectangle locate_texture_projectile(ProjectileType type); // Proyectile texture location
+void GameStateInitialization(void);
+void GameStateUpdate(void); // Call only if the state is initialized
+void GameStateCleanup(void);
 
-f32 adjust_to_time_delta(f32 value);
-Vector2 adjust_vector2_to_time_delta(Vector2 v);
+Rectangle SpaceshipTextureLocation(SpaceshipType type);   // Spaceship texture location
+Rectangle ProjectileTextureLocation(ProjectileType type); // Proyectile texture location
 
-Font font(FontFamily type);
+f32 ScaleToDelta(f32 value);
+Vector2 Vector2ScaleToDelta(Vector2 v);
 
-extern GameState state; // Game state global variable
+Font FontFromFamily(FontFamily type);
+
+extern GameState *state; // Game state global variable
 
 #endif // __SOURCE_STATE_H_

@@ -61,25 +61,6 @@ typedef enum GamepadTrigger
 // ---- Inputs ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-typedef enum PlayerAction
-{
-    ACTION_MOVE_UP = 0,
-    ACTION_MOVE_RIGHT,
-    ACTION_MOVE_DOWN,
-    ACTION_MOVE_LEFT,
-
-    ACTION_AIM_UP,
-    ACTION_AIM_RIGHT,
-    ACTION_AIM_DOWN,
-    ACTION_AIM_LEFT,
-
-    ACTION_ABILITY_SHOOT,
-    ACTION_ABILITY_SHOOT_MISSILE,
-    ACTION_ABILITY_DASH,
-} PlayerAction;
-
-#define PLAYER_ACTIONS_COUNT 11
-
 typedef enum InputMethod
 {
     INPUT_METHOD_NONE = 0,         // No input method
@@ -89,78 +70,19 @@ typedef enum InputMethod
     INPUT_METHOD_GAMEPAD_BUTTON,   // Gamepad button
     INPUT_METHOD_GAMEPAD_TRIGGER,  // Gamepad trigger
     INPUT_METHOD_GAMEPAD_JOYSTICK, // Gamepad joystick
-
 } InputMethod;
-
-typedef u16 InputValue;
-
-typedef struct Input
-{
-    InputMethod method;
-    InputValue value;
-} Input;
 
 typedef i16 InputDevice; // -2 for keyboard and mouse, -1 for no gamepad assigned and 0+ for gamepad IDs
 
-typedef struct PlayerControls
-{
-    InputDevice device;
-    Input actions[PLAYER_ACTIONS_COUNT];
-} PlayerControls;
+#define INPUT_DEVICE_KEYBOARD_AND_MOUSE -2
+#define INPUT_DEVICE_NO_GAMEPAD         -1
 
-/**
- * Input functions, returning values between 0 (fully inactive) and 1 (fully active). The return values are set as such:
- * - `f32`: has inbetween values (returned as float value [0..1])
- * - `bool`: has only on and off values (returned as boolean value 0 or 1)
- */
+bool InputKeyboardKeyDown(KeyboardKey key);        // [0, 1] Discrete value
+bool InputMouseButtonDown(MouseButton button);     // [0, 1] Discrete value
+f32 InputMouseCursorDelta(AxisDirection axis_dir); // [0..Inf] Continuous value (Cursor pos increase from last frame in that direction)
 
-bool mouse_button_down(MouseButton button);
-bool keyboard_key_down(KeyboardKey key);
-f32 pointer_position_offset(AxisDirection axis_direction, Vector2 origin, f32 max_difference);
-
-bool gamepad_button_down(InputDevice gamepad_id, GamepadButton button);
-f32 gamepad_trigger_pressure(InputDevice gamepad_id, GamepadTrigger trigger);
-f32 gamepad_joystick_offset(InputDevice gamepad_id, GamepadJoystickDirection joystick_direction);
-
-// ----------------------------------------------------------------------------
-// ---- Defaults --------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
-#define INPUT_DEVICE_KEYBOARD_AND_MOUSE (-2)
-#define INPUT_DEVICE_NO_GAMEPAD         (-1)
-
-#define DEFAULT_MOUSE_AND_KEYBOARD_INPUTS                                                                                                  \
-    {                                                                                                                                      \
-        {INPUT_METHOD_KEYBOARD_KEY, KEY_W}, /* ACTION_MOVE_UP */                                                                           \
-        {INPUT_METHOD_KEYBOARD_KEY, KEY_D}, /* ACTION_MOVE_RIGHT */                                                                        \
-        {INPUT_METHOD_KEYBOARD_KEY, KEY_S}, /* ACTION_MOVE_DOWN */                                                                         \
-        {INPUT_METHOD_KEYBOARD_KEY, KEY_A}, /* ACTION_MOVE_LEFT */                                                                         \
-                                                                                                                                           \
-        {INPUT_METHOD_POINTER_POSITION, AXIS_DIRECTION_NEGATIVE_Y}, /* ACTION_AIM_UP */                                                    \
-        {INPUT_METHOD_POINTER_POSITION, AXIS_DIRECTION_POSITIVE_X}, /* ACTION_AIM_RIGHT */                                                 \
-        {INPUT_METHOD_POINTER_POSITION, AXIS_DIRECTION_POSITIVE_Y}, /* ACTION_AIM_DOWN */                                                  \
-        {INPUT_METHOD_POINTER_POSITION, AXIS_DIRECTION_NEGATIVE_X}, /* ACTION_AIM_LEFT */                                                  \
-                                                                                                                                           \
-        {INPUT_METHOD_MOUSE_BUTTON, MOUSE_BUTTON_LEFT},  /* ACTION_ABILITY_SHOOT */                                                        \
-        {INPUT_METHOD_MOUSE_BUTTON, MOUSE_BUTTON_RIGHT}, /* ACTION_ABILITY_SHOOT_MISSILE */                                                \
-        {INPUT_METHOD_KEYBOARD_KEY, KEY_SPACE},          /* ACTION_ABILITY_DASH */                                                         \
-    }
-
-#define DEFAULT_GAMEPAD_INPUTS                                                                                                             \
-    {                                                                                                                                      \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_LEFT_NEGATIVE_Y}, /* ACTION_MOVE_UP */                                            \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_LEFT_POSITIVE_X}, /* ACTION_MOVE_RIGHT */                                         \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_LEFT_POSITIVE_Y}, /* ACTION_MOVE_DOWN */                                          \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_LEFT_NEGATIVE_X}, /* ACTION_MOVE_LEFT */                                          \
-                                                                                                                                           \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_RIGHT_NEGATIVE_Y}, /* ACTION_AIM_UP */                                            \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_RIGHT_POSITIVE_X}, /* ACTION_AIM_RIGHT */                                         \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_RIGHT_POSITIVE_Y}, /* ACTION_AIM_DOWN */                                          \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_RIGHT_NEGATIVE_X}, /* ACTION_AIM_LEFT */                                          \
-                                                                                                                                           \
-        {INPUT_METHOD_GAMEPAD_TRIGGER, GAMEPAD_TRIGGER_RIGHT},        /* ACTION_ABILITY_SHOOT */                                           \
-        {INPUT_METHOD_GAMEPAD_TRIGGER, GAMEPAD_TRIGGER_LEFT},         /* ACTION_ABILITY_SHOOT_MISSILE */                                   \
-        {INPUT_METHOD_GAMEPAD_BUTTON, GAMEPAD_BUTTON_LEFT_TRIGGER_1}, /* ACTION_ABILITY_DASH */                                            \
-    }
+bool InputGamepadButtonDown(InputDevice gamepad_id, GamepadButton button);                     // [0, 1] Discrete value
+f32 InputGamepadTriggerPressure(InputDevice gamepad_id, GamepadTrigger trigger);               // [0..1] Continuous value
+f32 InputGamepadJoystickOffset(InputDevice gamepad_id, GamepadJoystickDirection joystick_dir); // [0..1] Continuous value
 
 #endif // __SOURCE_INPUTS_H_

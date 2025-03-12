@@ -3,7 +3,7 @@
 #define __SOURCE_ENTITY_H_
 
 #include "abilities.h"
-#include "inputs.h"
+#include "player_actions.h"
 #include "rayheader.h"
 
 // ----------------------------------------------------------------------------
@@ -20,7 +20,9 @@ typedef struct Entity
     f32 draw_rotation;      // Rotation of the base representation of the  of the entity in radians
 } Entity;
 
-Vector2 entity_center(Entity entity);
+Vector2 EntityCenter(Entity entity);
+
+void EntityDraw(Entity entity, Rectangle texture_location);
 
 // ----------------------------------------------------------------------------
 // ---- Entity types ----------------------------------------------------------
@@ -63,11 +65,11 @@ typedef struct Projectile
 #define PROJECTILE_MISSILE_SIZE  ((Vector2){8, 25})
 #define PROJECTILE_MISSILE_SPEED 750
 
-Projectile *projectile_create(ProjectileType type, Entity entity, u32 damage, u32 range);
+Projectile *ProjectileCreate(ProjectileType type, Entity entity, u32 damage, u32 range);
 
-bool projectile_move(Projectile *projectile);
+bool ProjectileMove(Projectile *projectile);
 
-void proyectile_draw(Projectile projectile);
+void ProjectileDraw(Projectile projectile);
 
 // ----------------------------------------------------------------------------
 // ---- Player ----------------------------------------------------------------
@@ -78,14 +80,12 @@ typedef struct Player
     Entity entity;
     SpaceshipType type;
 
-    Vector2 aiming_at;
     bool alternate_shooting;
 
-    bool using_gamepad;
-    PlayerControls controls[2];
+    InputDevice input_device;
 
-    AbilityProjectile shoot_basic;
-    AbilityProjectile shoot_missile;
+    AbilityProjectile shooting;
+    AbilityProjectile shooting_missile;
 } Player;
 
 #define PLAYER_DRAW_ROTATION  PI_HALF
@@ -95,24 +95,24 @@ typedef struct Player
 
 #define PLAYER_CANNONS_OFFSET 6
 
-#define PLAYER_AIMING_SIGHT_MAX_DISTANCE 200
-#define PLAYER_AIMING_SIGHT_MIN_DISTANCE (PLAYER_DIAMETER + 10)
-#define PLAYER_AIMING_SIGHT_SIZE         ((Vector2){16, 10})
-#define PLAYER_AIMING_SIGHT_THICKNESS    2
+// #define PLAYER_AIMING_SIGHT_MAX_DISTANCE 200
+// #define PLAYER_AIMING_SIGHT_MIN_DISTANCE (PLAYER_DIAMETER + 10)
+// #define PLAYER_AIMING_SIGHT_SIZE         ((Vector2){16, 10})
+// #define PLAYER_AIMING_SIGHT_THICKNESS    2
 
-#define PLAYER_THRESHOLD_MOVEMENT 0.15
+#define PLAYER_ACTION_MOVE_THRESHOLD 0.15f
 
-Player *player_create(SpaceshipType type, Vector2 position);
+Player *PlayerCreate(SpaceshipType type, Vector2 position);
 
-f32 player_input(Player player, PlayerAction action);
+f32 PlayerCheckAction(Player *player, PlayerAction action);
 
-void player_move(Player *player);
-void player_aim(Player *player);
+void PlayerMove(Player *player);
+void PlayerAim(Player *player);
 
-void player_shoot_basic(Player *player);
-void player_shoot_missile(Player *player);
+void PlayerShootBasic(Player *player);
+void PlayerShootMissile(Player *player);
 
-void player_draw(Player player);
+void PlayerDraw(Player player);
 
 // ----------------------------------------------------------------------------
 // ---- Enemy -----------------------------------------------------------------
@@ -123,13 +123,13 @@ typedef struct Enemy
     Entity entity;
     SpaceshipType type;
 
-    AbilityProjectile shoot_basic;
+    AbilityProjectile shooting;
 } Enemy;
 
 #define ENEMY_SIZE ((Vector2){20, 20})
 
-Enemy *enemy_create(SpaceshipType type, Vector2 position, Vector2 movement_speed, f32 rotation);
+Enemy *EnemyCreate(SpaceshipType type, Vector2 position, Vector2 movement_speed, f32 rotation);
 
-void enemy_draw(Enemy enemy);
+void EnemyDraw(Enemy enemy);
 
 #endif // __SOURCE_ENTITY_H_
