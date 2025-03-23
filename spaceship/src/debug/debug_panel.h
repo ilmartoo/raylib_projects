@@ -9,17 +9,14 @@ typedef struct DebugPanel
 {
     Arena arena;
     Color background_color;
-
-    Font font_title;
-    Font font_entry;
-
+    Font font;
     u32 titles;
     u32 entries;
     Vector2 content_size;
 } DebugPanel;
 
-#define DEBUG_PANEL_TITLE_FONT_SIZE 24
-#define DEBUG_PANEL_ENTRY_FONT_SIZE 24
+#define DEBUG_PANEL_TITLE_FONT_SIZE 20
+#define DEBUG_PANEL_ENTRY_FONT_SIZE 15
 #define DEBUG_PANEL_FONT_SPACING    0
 
 #define DEBUG_PANEL_BORDER_SIZE   2
@@ -34,7 +31,7 @@ typedef struct DebugPanel
  * @param entry_font Font for the entry text.
  * @returns A new debug panel.
  */
-DebugPanel *DebugPanelCreate(Color background_color, Font title_font, Font entry_font);
+DebugPanel *DebugPanelCreate(Color background_color, Font font);
 /**
  * Deletes a debug panel.
  * @param panel Panel to delete.

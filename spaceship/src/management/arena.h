@@ -41,7 +41,7 @@ void *ArenaPush(Arena *arena, size_t size);
  * @param type Type of the data.
  * @returns Pointer to the reserved memory.
  */
-#define ArenaPushType(arena, type) (type *)arena_push((arena), sizeof(type))
+#define ArenaPushType(arena, type) (type *)ArenaPush((arena), sizeof(type))
 /**
  * Reserves some bytes on an arena and set them to 0.
  * @param arena Arena to use.
@@ -55,7 +55,7 @@ void *ArenaPushZero(Arena *arena, size_t size);
  * @param type Type of the data.
  * @returns Pointer to the reserved memory.
  */
-#define ArenaPushTypeZero(arena, type) (type *)arena_push_zero((arena), sizeof(type))
+#define ArenaPushTypeZero(arena, type) (type *)ArenaPushZero((arena), sizeof(type))
 /**
  * Reserves some bytes for a type array on an arena.
  * @param arena Arena to use.
@@ -63,7 +63,7 @@ void *ArenaPushZero(Arena *arena, size_t size);
  * @param count Size of the array.
  * @returns Pointer to the reserved memory.
  */
-#define ArenaPushArray(arena, type, count) (type *)arena_push((arena), sizeof(type) * (count))
+#define ArenaPushArray(arena, type, count) (type *)ArenaPush((arena), sizeof(type) * (count))
 /**
  * Reserves some bytes for a type array on an arena and set them to 0.
  * @param arena Arena to use.
@@ -71,7 +71,7 @@ void *ArenaPushZero(Arena *arena, size_t size);
  * @param count Size of the array.
  * @returns Pointer to the reserved memory.
  */
-#define ArenaPushArrayZero(arena, type, count) (type *)arena_push_zero((arena), sizeof(type) * (count))
+#define ArenaPushArrayZero(arena, type, count) (type *)ArenaPushZero((arena), sizeof(type) * (count))
 
 /**
  * Frees some bytes from an arena.
@@ -84,14 +84,14 @@ void ArenaPop(Arena *arena, size_t size);
  * @param arena Arena to use.
  * @param type Type of the data.
  */
-#define ArenaPopType(arena, type) arena_pop((arena), sizeof(type))
+#define ArenaPopType(arena, type) ArenaPop((arena), sizeof(type))
 /**
  * Frees some bytes from a type array on an arena.
  * @param arena Arena to use.
  * @param type Type of the array's data.
  * @param count Size of the array.
  */
-#define ArenaPopArray(arena, type, count) arena_pop((arena), sizeof(type) * (count))
+#define ArenaPopArray(arena, type, count) ArenaPop((arena), sizeof(type) * (count))
 /**
  * Frees all bytes from an arena.
  * @param arena Arena to use.

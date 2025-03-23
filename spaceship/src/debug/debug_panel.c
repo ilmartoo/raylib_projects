@@ -6,16 +6,11 @@
 #include "memory_utils.h"
 #include "rayheader.h"
 
-DebugPanel *DebugPanelCreate(Color background_color, Font title_font, Font entry_font)
+DebugPanel *DebugPanelCreate(Color background_color, Font font)
 {
     DebugPanel *panel = reserve(DebugPanel);
-    *panel = (DebugPanel){.arena = ArenaCreate(),
-                          .background_color = background_color,
-                          .font_title = title_font,
-                          .font_entry = entry_font,
-                          .titles = 0,
-                          .entries = 0,
-                          .content_size = {0}};
+    *panel = (DebugPanel){
+        .arena = ArenaCreate(), .background_color = background_color, .font = font, .titles = 0, .entries = 0, .content_size = {0}};
     return panel;
 }
 
@@ -31,17 +26,17 @@ void DebugPanelAddTitle(DebugPanel *panel, const char *title)
 
     usize title_size = TextLength(title) + 1;
 
-    *ArenaPushType(panel->arena, bool) = true;            // Is a title
-    *ArenaPushTypeZero(panel->arena, usize) = title_size; // Text size
-    f32 *height = ArenaPushTypeZero(panel->arena, f32);
-    char *title_mem = ArenaPushArrayZero(panel->arena, char, title_size);
+    *ArenaPushType(&panel->arena, bool) = true;            // Is a title
+    *ArenaPushTypeZero(&panel->arena, usize) = title_size; // Text size
+    f32 *height = ArenaPushTypeZero(&panel->arena, f32);
+    char *title_mem = ArenaPushArrayZero(&panel->arena, char, title_size);
 
     if (title != NULL)
     {
-        memory_copy(title_mem, title, title_size);
-        Vector2 title_measures = MeasureTextEx(panel->font_title, title, DEBUG_PANEL_TITLE_FONT_SIZE, DEBUG_PANEL_FONT_SPACING);
+        memory_copy(title_mem, title, title_size - 1);
+        Vector2 title_measures = MeasureTextEx(panel->font, title, DEBUG_PANEL_TITLE_FONT_SIZE, DEBUG_PANEL_FONT_SPACING);
         panel->content_size.x = max(panel->content_size.x, title_measures.x);
-        *height = title_measures.y;
+        panel->content_size.y += *height = title_measures.y;
     }
 }
 
@@ -51,21 +46,24 @@ void DebugPanelAddEntry(DebugPanel *panel, const char *text)
 
     usize text_size = TextLength(text) + 1;
 
-    *ArenaPushType(panel->arena, bool) = false;          // Is an entry
-    *ArenaPushTypeZero(panel->arena, usize) = text_size; // Text size
-    f32 *height = ArenaPushTypeZero(panel->arena, f32);
-    char *text_mem = ArenaPushArrayZero(panel->arena, char, text_size);
+    *ArenaPushType(&panel->arena, bool) = false;          // Is an entry
+    *ArenaPushTypeZero(&panel->arena, usize) = text_size; // Text size
+    f32 *height = ArenaPushTypeZero(&panel->arena, f32);
+    char *text_mem = ArenaPushArrayZero(&panel->arena, char, text_size);
 
     if (text != NULL)
     {
-        memory_copy(text_mem, text, text_size);
-        Vector2 text_measures = MeasureTextEx(panel->font_entry, text, DEBUG_PANEL_ENTRY_FONT_SIZE, DEBUG_PANEL_FONT_SPACING);
+        memory_copy(text_mem, text, text_size - 1);
+        Vector2 text_measures = MeasureTextEx(panel->font, text, DEBUG_PANEL_ENTRY_FONT_SIZE, DEBUG_PANEL_FONT_SPACING);
         panel->content_size.x = max(panel->content_size.x, text_measures.x);
         panel->content_size.y += *height = text_measures.y;
     }
 }
 
-void draw_text(const char *text, f32 x, f32 y, float font_size, Font font) { DrawTextEx(font, text, (Vector2){x, y}, font_size, 0, WHITE); }
+void __DebugPanelTextDraw(const char *text, f32 x, f32 y, float font_size, Font font)
+{
+    DrawTextEx(font, text, (Vector2){x, y}, font_size, 0, WHITE);
+}
 
 Vector2 DebugPanelMeasures(DebugPanel panel)
 {
@@ -91,33 +89,35 @@ void DebugPanelDraw(DebugPanel panel, Vector2 screen_position)
 
     u32 remaining_titles = panel.titles;
     u32 remaining_entries = panel.entries;
-    void *ptr = panel.arena.memory;
+    uptr ptr = (uptr)panel.arena.memory;
 
     while (remaining_titles > 0 || remaining_entries > 0)
     {
         bool is_title = *(bool *)ptr;
-        ptr += sizeof(bool);
 
+        ptr += sizeof(bool);
         usize size = *(usize *)ptr;
         ptr += sizeof(usize);
 
         f32 height = *(f32 *)ptr;
         ptr += sizeof(f32);
 
-        char *text = *(char *)ptr;
+        char *text = (char *)ptr;
         ptr += sizeof(char) * size;
 
+        f32 font_size;
         if (is_title)
         {
-            --remaining_titles;
-            draw_text(text, x, y, DEBUG_PANEL_TITLE_FONT_SIZE, panel.font_title);
+            font_size = DEBUG_PANEL_TITLE_FONT_SIZE;
             y += DEBUG_PANEL_TITLE_SPACING;
+            --remaining_titles;
         }
         else
         {
+            font_size = DEBUG_PANEL_ENTRY_FONT_SIZE;
             --remaining_entries;
-            draw_text(text, x, y, DEBUG_PANEL_ENTRY_FONT_SIZE, panel.font_entry);
         }
+        __DebugPanelTextDraw(text, x, y, font_size, panel.font);
 
         y += height;
     }
@@ -127,5 +127,6 @@ void DebugPanelClean(DebugPanel *panel)
 {
     panel->titles = 0;
     panel->entries = 0;
+    panel->content_size = Vector2Zero();
     ArenaClear(&panel->arena);
 }

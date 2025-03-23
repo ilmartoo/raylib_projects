@@ -1,16 +1,16 @@
 #include <stdlib.h>
 
-#include "object_pool.h"
 #include "memory_utils.h"
+#include "object_pool.h"
 #include "types.h"
 
-usize __duplicate_to_reach_target(usize num, usize target)
+usize __DuplicateToReachTarget(usize num, usize target)
 {
     while (num < target) { num *= 2; }
     return num;
 }
 
-void *__update_object_from_ObjectPool(void *object_pos, const void *const new_value, usize object_size)
+void *__UpdateObjectFromObjectPool(void *object_pos, const void *const new_value, usize object_size)
 {
     memory_copy(object_pos, new_value, object_size);
     *((bool *)object_pos + object_size) = true;
@@ -33,11 +33,11 @@ void ObjectPoolDelete(ObjectPool *pool) { free(pool->chunks); }
 
 void *ObjectPoolAdd(ObjectPool *pool, const void *const data)
 {
-    ObjectPoolForEachChunk(pool, void, iteration)
+    ForEachObjectPoolChunk(pool, void, iteration)
     {
         if (!iteration.valid)
         {
-            __update_object_from_ObjectPool(iteration.object, data, pool->object_size);
+            __UpdateObjectFromObjectPool(iteration.object, data, pool->object_size);
             ++pool->object_count;
             return iteration.object;
         }
@@ -48,12 +48,12 @@ void *ObjectPoolAdd(ObjectPool *pool, const void *const data)
 
     if (pool->mem_size < needed_size)
     {
-        pool->mem_size = __duplicate_to_reach_target(pool->mem_size, needed_size);
+        pool->mem_size = __DuplicateToReachTarget(pool->mem_size, needed_size);
         pool->chunks = (byte *)realloc(pool->chunks, pool->mem_size);
     }
 
     void *last_data_object = pool->chunks + current_size;
-    __update_object_from_ObjectPool(last_data_object, data, pool->object_size);
+    __UpdateObjectFromObjectPool(last_data_object, data, pool->object_size);
     pool->object_count = ++pool->chunk_count;
     return last_data_object;
 }

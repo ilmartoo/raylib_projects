@@ -5,16 +5,16 @@ Lista de tareas y notas importantes sobre el desarrollo de este proyecto.
 - Los bugs a corregir se recogen en [bugs](#Bugs).
 ## Tareas
 
-| Tarea                  | Entidad                       | Resumen                                                                                                                                        |
-| ---------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Jugabilidad y objetivo |                               | Pensar sobre el gameplay y el objetivo del juego [\[✒️\]](#notas#gameplay)                                                                     |
-| Controles              |                               | Librería o utilidad que permita definir acciones y la tecla asociada [\[✒️\]](#notas#inputs)                                                   |
-| Cámara                 | Player                        | Creación de la cámara, de forma que el espacio visible no dependa del tamaño de la pantalla                                                    |
-| Enemigos               | Enemy                         | Creación de la entidad enemigo, funciones necesarias, acciones, movimiento...                                                                  |
-| Habilidades            | Ability<br>Player<br>Enemy    | Inventar nuevas habilidades para los jugadores y enemigos [\[✒️\]](#notas#posibles%20habilidades)                                              |
-| Colisiones             | Player<br>Enemy<br>Projectile | Comprobación de colisiones entre jugadores, enemigos y proyectiles                                                                             |
-| IA de enemigos         | Enemy                         | Creación de un algoritmo de IA para activar el movimiento y acciones de los enemigos                                                           |
-| Recuadro de cooldowns  | Player<br>UI                  | Recuadro o cajetín donde se muestren las habilidades, preferiblemente con un texto descriptivo o una imagen, con el tiempo de recarga asociado |
+| Tarea                  | Entidad                       | Resumen                                                                                                                                        | %   |
+| ---------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| Jugabilidad y objetivo |                               | Pensar sobre el gameplay y el objetivo del juego [\[✒️\]](#notas#gameplay)                                                                     | 10  |
+| Controles              |                               | Librería o utilidad que permita definir acciones y la tecla asociada [\[✒️\]](#notas#inputs)                                                   | 70  |
+| Cámara                 | Player                        | Creación de la cámara, de forma que el espacio visible no dependa del tamaño de la pantalla                                                    | 0   |
+| Enemigos               | Enemy                         | Creación de la entidad enemigo, funciones necesarias, acciones, movimiento...                                                                  | 10  |
+| Habilidades            | Ability<br>Player<br>Enemy    | Inventar nuevas habilidades para los jugadores y enemigos [\[✒️\]](#notas#posibles%20habilidades)                                              | 20  |
+| Colisiones             | Player<br>Enemy<br>Projectile | Comprobación de colisiones entre jugadores, enemigos y proyectiles                                                                             | 0   |
+| IA de enemigos         | Enemy                         | Creación de un algoritmo de IA para activar el movimiento y acciones de los enemigos                                                           | 0   |
+| Recuadro de cooldowns  | Player<br>UI                  | Recuadro o cajetín donde se muestren las habilidades, preferiblemente con un texto descriptivo o una imagen, con el tiempo de recarga asociado | 0   |
 >\[✒️\] - Enlace a la nota donde se añade contexto.
 
 ---

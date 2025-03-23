@@ -14,10 +14,28 @@ typedef struct Cooldown
     f64 available_at; // The time at which the ability will be available again
 } Cooldown;
 
-void cooldown_start(Cooldown *cooldown);   // Starts a cooldown
-bool is_cooldown_ready(Cooldown cooldown); // Check if the cooldown is up
+void CooldownStart(Cooldown *cooldown);  // Starts a cooldown
+bool IsCooldownReady(Cooldown cooldown); // Check if the cooldown is up
 
 #define COOLDOWN_DEFINITION(time) ((Cooldown){.down_time = time, .available_at = 0})
+
+// ----------------------------------------------------------------------------
+// ---- Regeneration Abilities ------------------------------------------------
+// ----------------------------------------------------------------------------
+
+typedef struct AbilityRegen
+{
+    u32 flat;
+    u8 percentage;
+    Cooldown damage_cooldown;
+    Cooldown regen_cooldown;
+} AbilityRegen;
+
+#define ABILITY_REGEN_DEFINITION(flat_regen, percentage_regen, damage_cooldown_time, regen_cooldown_time)                                  \
+    ((AbilityRegen){.flat = flat_regen,                                                                                                    \
+                    .percentage = percentage_regen,                                                                                        \
+                    .damage_cooldown = COOLDOWN_DEFINITION(damage_cooldown_time),                                                          \
+                    .regen_cooldown = COOLDOWN_DEFINITION(regen_cooldown_time)})
 
 // ----------------------------------------------------------------------------
 // ---- Projectile Abilities --------------------------------------------------
@@ -27,23 +45,10 @@ typedef struct AbilityProjectile
 {
     u32 damage;
     u32 range;
-
     Cooldown cooldown;
 } AbilityProjectile;
 
-#define ABILITY_SHOOT_DAMAGE        10
-#define ABILITY_SHOOT_RANGE         400
-#define ABILITY_SHOOT_COOLDOWN_TIME 0.1f
-#define ABILITY_SHOOT                                                                                                                      \
-    ((AbilityProjectile){                                                                                                                  \
-        .damage = ABILITY_SHOOT_DAMAGE, .range = ABILITY_SHOOT_RANGE, .cooldown = COOLDOWN_DEFINITION(ABILITY_SHOOT_COOLDOWN_TIME)})
-
-#define ABILITY_SHOOT_MISSILE_DAMAGE        80
-#define ABILITY_SHOOT_MISSILE_RANGE         400
-#define ABILITY_SHOOT_MISSILE_COOLDOWN_TIME 6
-#define ABILITY_SHOOT_MISSILE                                                                                                              \
-    ((AbilityProjectile){.damage = ABILITY_SHOOT_MISSILE_DAMAGE,                                                                           \
-                         .range = ABILITY_SHOOT_MISSILE_RANGE,                                                                             \
-                         .cooldown = COOLDOWN_DEFINITION(ABILITY_SHOOT_MISSILE_COOLDOWN_TIME)})
+#define ABILITY_PROJECTILE_DEFINITION(projectile_damage, projectile_range, cooldown_time)                                                  \
+    ((AbilityProjectile){.damage = projectile_damage, .range = projectile_range, .cooldown = COOLDOWN_DEFINITION(cooldown_time)})
 
 #endif // __SOURCE_ABILITIES_H_

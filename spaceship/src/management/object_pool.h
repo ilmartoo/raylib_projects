@@ -8,7 +8,7 @@
 // ---- Internals -------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-#define __ILMARTO_OBJECT_POOL_FOR_EACH_CHUNK(pool, type, iteration_var)                                                                    \
+#define __FOR_EACH_OBJECT_POOL_CHUNK(pool, type, iteration_var)                                                                            \
     if (pool->chunk_count > 0)                                                                                                             \
         for (                                                                                                                              \
             struct {                                                                                                                       \
@@ -21,7 +21,7 @@
               iteration_var.object = (type *)((uptr)iteration_var.object + pool->chunk_size),                                              \
               iteration_var.valid = *(bool *)((uptr)iteration_var.object + pool->object_size))
 
-#define __ILMARTO_OBJECT_POOL_FOR_EACH_OBJECT(pool, type, iteration_var)                                                                   \
+#define __FOR_EACH_OBJECT_POOL_OBJECT(pool, type, iteration_var)                                                                           \
     if (pool->chunk_count > 0)                                                                                                             \
         for (                                                                                                                              \
             struct {                                                                                                                       \
@@ -86,7 +86,7 @@ void ObjectPoolDelete(ObjectPool *pool);
  * @param data object Reference to the memory that contains the data object to include (as a shallow copy) into the data object pool.
  * @return Reference to the new data object inside the memory pool.
  */
-void *ObjectPoolAdd(ObjectPool *pool, const void *data);
+void *ObjectPoolAdd(ObjectPool *pool, const void *const data);
 /**
  * Removes the data object at the specified index from the data object pool.
  * @param pool Entity pool to use.
@@ -128,9 +128,9 @@ u32 ObjectPoolChunkCount(ObjectPool pool);
  * @param pool Entity pool to use.
  * @param type Type of the data object.
  * @param iteration_var Name of the variable where all the iteration information will be stored.
- * @param iteration_var.index Index of the current chunk.
- * @param iteration_var.object Pointer to the object of the chunk.
- * @param iteration_var.valid Boolean representing if the object inside the chunk is valid.
+ * @param iteration_var.index `u32` Index of the current chunk.
+ * @param iteration_var.object `type *` Pointer to the object of the chunk.
+ * @param iteration_var.valid `bool` Boolean representing if the object inside the chunk is valid.
  *
  * Usage:
  * ```
@@ -140,13 +140,13 @@ u32 ObjectPoolChunkCount(ObjectPool pool);
  * ObjectPoolAdd(&pool, &(f = 1.0f));
  * ObjectPoolAdd(&pool, &(f = 6.7f));
  *
- * ObjectPoolForEachChunk(pool, float, itr) {
+ * ForEachObjectPoolChunk(pool, float, itr) {
  *     printf("Iteration: %d. Entity: %.2f [%p]. %s\n", itr.index, *itr.data, itr.object, itr.is_used ? "Is alive :)"
  * : "Is dead :(");
  * }
  * ```
  */
-#define ObjectPoolForEachChunk(pool, type, iteration_var) __ILMARTO_OBJECT_POOL_FOR_EACH_CHUNK((pool), type, iteration_var)
+#define ForEachObjectPoolChunk(pool, type, iteration_var) __FOR_EACH_OBJECT_POOL_CHUNK((pool), type, iteration_var)
 
 /**
  * Custom for-each-loop to iterate over all the chunks with valid entities of an data object pool.
@@ -155,8 +155,8 @@ u32 ObjectPoolChunkCount(ObjectPool pool);
  * @param pool Entity pool to use.
  * @param type Type of the data object.
  * @param iteration_var Name of the variable where all the iteration information will be stored.
- * @param iteration_var.index Index of the current chunk.
- * @param iteration_var.object Pointer to the object of the chunk.
+ * @param iteration_var.index `u32` Index of the current chunk.
+ * @param iteration_var.object `type *` Pointer to the object of the chunk.
  *
  * Usage:
  * ```
@@ -166,11 +166,11 @@ u32 ObjectPoolChunkCount(ObjectPool pool);
  * ObjectPoolAdd(&pool, &(f = 1.0f));
  * ObjectPoolAdd(&pool, &(f = 6.7f));
  *
- * ObjectPoolForEachObject(pool, float, itr) {
+ * ForEachObjectPoolObject(pool, float, itr) {
  *     printf("Iteration: %d. Entity: %.2f [%p]\n", itr.index, *itr.object, itr.object");
  * }
  * ```
  */
-#define ObjectPoolForEachObject(pool, type, iteration_var) __ILMARTO_OBJECT_POOL_FOR_EACH_OBJECT((pool), type, iteration_var)
+#define ForEachObjectPoolObject(pool, type, iteration_var) __FOR_EACH_OBJECT_POOL_OBJECT((pool), type, iteration_var)
 
 #endif // __ILMARTO_DATA_OBJECT_POOL_H_

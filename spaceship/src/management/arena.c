@@ -27,7 +27,7 @@ void *ArenaPush(Arena *arena, size_t size)
 void *ArenaPushZero(Arena *arena, size_t size)
 {
     void *reserved_memory = ArenaPush(arena, size);
-    for (char *m = reserved_memory; size; --size) { *m = 0; }
+    for (char *m = reserved_memory; size; --size) { *(m++) = 0; }
     return reserved_memory;
 }
 

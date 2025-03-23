@@ -1,53 +1,109 @@
 #include <math.h>
 
 #include "abilities.h"
+#include "actions.h"
 #include "debug.h"
 #include "entities.h"
 #include "rayheader.h"
-#include "player_actions.h"
 #include "state.h"
 
-#ifdef DEBUG
-#define entity_bounding_box_draw(center, radius, color, fill)                                                                              \
-    do {                                                                                                                                   \
-        if (fill) { DrawCircleV(center, radius, color); }                                                                                  \
-        else { DrawCircleLinesV(center, radius, color); }                                                                                  \
-    } while (0)
-#else
-#define entity_bounding_box_draw(center, radius, color, fill)
-#endif
+// ----------------------------------------------------------------------------
+// ---- Entity ----------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+void __EntityBoundingCircleDraw(Entity entity, Color color, bool fill)
+{
+    if (state->testing_draw_bounding_circles)
+    {
+        if (fill) { DrawCircleV(EntityBoundingCircleCenter(entity), entity.bounding_circle.radius, color); }
+        else { DrawCircleLinesV(EntityBoundingCircleCenter(entity), entity.bounding_circle.radius, color); }
+    }
+}
+
+void EntitySetRotation(Entity *entity, f32 rotation)
+{
+    entity->rotation = rotation;
+    entity->bounding_circle._center_rotated = Vector2Rotate(entity->bounding_circle.center, rotation + entity->_draw_rotation);
+}
 
 Vector2 EntityCenter(Entity entity) { return Vector2Add(entity.position, Vector2Scale(entity.size, 0.5)); }
+
+Vector2 EntityBoundingCircleCenter(Entity entity) { return Vector2Add(EntityCenter(entity), entity.bounding_circle._center_rotated); }
 
 void EntityDraw(Entity entity, Rectangle texture_location)
 {
     Vector2 size_center = Vector2Scale(entity.size, 0.5);
 
-    DrawTexturePro(state.spritesheet,
+    DrawTexturePro(state->spritesheet,
                    texture_location,
                    (Rectangle){size_center.x + entity.position.x, size_center.y + entity.position.y, entity.size.x, entity.size.y},
                    size_center,
-                   Rad2Deg(entity.rotation + entity.draw_rotation),
+                   Rad2Deg(entity.rotation + entity._draw_rotation),
                    WHITE);
+
+    __EntityBoundingCircleDraw(entity, Fade(LIME, 0.5), false);
 }
 
-Projectile *ProjectileCreate(ProjectileType type, Entity entity, u32 damage, u32 range)
+// ----------------------------------------------------------------------------
+// ---- Health ----------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+Health HealthCreate(u32 max) { return (Health){.current = max, .max = max}; }
+
+void HealthBarDraw(Health health, Entity entity, Color border_color, Color health_color)
+{
+    Vector2 health_bar_size = Vector2From(entity.size.x, HEALTH_BAR_HEIGTH);
+
+    Vector2 border_draw_position = Vector2Subtract(EntityCenter(entity), Vector2Scale(health_bar_size, 0.5f));
+    border_draw_position.y -= (entity.size.y * 0.5f) + HEALTH_BAR_HEIGTH + HEALTH_BAR_SEPARATION;
+
+    Vector2 health_draw_position = Vector2AddValue(border_draw_position, HEALTH_BAR_BORDER_WIDTH);
+
+    Vector2 health_size = Vector2AddValue(health_bar_size, -HEALTH_BAR_BORDER_WIDTH * 2);
+    health_size.x *= (health.current / (f32)health.max);
+
+    DrawRectangleV(border_draw_position, health_bar_size, Fade(border_color, HEALTH_BAR_OPACITY));
+    DrawRectangleV(health_draw_position, health_size, health_color);
+}
+
+// ----------------------------------------------------------------------------
+// ---- Proyectile ------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+Projectile *ProjectileCreate(ProjectileType type,
+                             Vector2 position,
+                             Vector2 size,
+                             f32 projectile_speed,
+                             f32 rotation,
+                             BoundingCircle bounding_circle,
+                             u32 damage,
+                             u32 range)
 {
     Projectile projectile = {
         .type = type,
-        .entity = entity,
+        .entity =
+            {
+                .position = position,
+                .size = size,
+                .movement_speed = Vector2Scale(Vector2UnitCirclePoint(rotation), projectile_speed),
+                .velocity = {0},
+                .rotation = rotation,
+                ._draw_rotation = PROJECTILE_DRAW_ROTATION,
+                .bounding_circle = bounding_circle,
+            },
         .damage = damage,
         .range = range,
-        .origin = entity.position,
+
+        ._origin = position,
     };
 
-    return (Projectile *)ObjectPoolAdd((type == PROYECTILE_PLAYER ? &state.projectiles_players : &state.projectiles_enemies),
-                                              &projectile);
+    return (Projectile *)ObjectPoolAdd((type == PROYECTILE_PLAYER ? &state->projectiles_players : &state->projectiles_enemies),
+                                       &projectile);
 }
 
 bool ProjectileMove(Projectile *projectile)
 {
-    f32 distance = Vector2Distance(projectile->entity.position, projectile->origin);
+    f32 distance = Vector2Distance(projectile->entity.position, projectile->_origin);
     u32 range = projectile->range;
     if (distance < range)
     {
@@ -58,71 +114,68 @@ bool ProjectileMove(Projectile *projectile)
     return false;
 }
 
-void ProjectileDraw(Projectile projectile)
-{
-    EntityDraw(projectile.entity, ProjectileTextureLocation(projectile.type));
+void ProjectileDraw(Projectile projectile) { EntityDraw(projectile.entity, ProjectileTextureLocation(projectile.type)); }
 
-    Vector2 center = EntityCenter(projectile.entity);
-    Vector2 half_size = Vector2Scale(projectile.entity.size, 0.5);
-    entity_bounding_box_draw(center, half_size.y, Fade(ORANGE, 0.5), false);
-    entity_bounding_box_draw(
-        Vector2Add(center, Vector2Scale(Vector2UnitCirclePoint(projectile.entity.rotation), half_size.y - half_size.x)),
-        half_size.x,
-        RED,
-        true);
+// ----------------------------------------------------------------------------
+// ---- Player ----------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+Player PlayerCreate(InputDevice device, u8 player_index, SpaceshipType type, Vector2 position)
+{
+    f32 rotation = 0;
+    return (Player){
+        .entity = {.position = position,
+                   .size = PLAYER_SIZE,
+                   .movement_speed = PLAYER_MOVEMENT_SPEED,
+                   .velocity = {0},
+                   .rotation = rotation,
+                   ._draw_rotation = PLAYER_DRAW_ROTATION,
+                   .bounding_circle = PLAYER_BOUNDING_CIRCLE(rotation)},
+        .type = type,
+        .health = PLAYER_HEALTH,
+
+        .ability_regeneration = PLAYER_ABILITY_REGENERATION,
+        .ability_shooting = PLAYER_ABILITY_SHOOT,
+        .ability_missile = PLAYER_ABILITY_MISSILE,
+
+        ._player_index = player_index,
+        ._alternate_shooting = true,
+        ._device = device,
+    };
 }
 
-Player *PlayerCreate(SpaceshipType type, Vector2 position)
+f32 PlayerGetAction(Player player, Action action)
 {
-    Player player = {.entity =
-                         {
-                             .position = position,
-                             .size = PLAYER_SIZE,
-                             .movement_speed = PLAYER_MOVEMENT_SPEED,
-                             .velocity = {0},
-                             .rotation = 0,
-                             .draw_rotation = PLAYER_DRAW_ROTATION,
-                         },
-                     .type = type,
-                     .alternate_shooting = true,
-                     .input_device = INPUT_DEVICE_KEYBOARD_AND_MOUSE,
-                     .shooting = ABILITY_SHOOT,
-                     .shooting_missile = ABILITY_SHOOT_MISSILE};
+    InputDevice device = player._device;
+    Mapping mapping = state->mappings[device][action];
 
-    return (Player *)ObjectPoolAdd(&state.players, &player);
-}
-
-f32 player_action_check(Player player, PlayerAction action)
-{
-
-    InputDevice device = player.controls[gamepad_input].device;
-    PlayerInput input = player.controls[gamepad_input].inputs[action];
-
-    switch (action)
+    if (device == INPUT_DEVICE_MOUSE_AND_KEYBOARD)
     {
-    case ACTION_AIM_UP:
-    case ACTION_AIM_RIGHT:
-    case ACTION_AIM_DOWN:
-    case ACTION_AIM_LEFT: return PlayerInputCheck(device, input, EntityCenter(player.entity), PLAYER_AIMING_SIGHT_MAX_DISTANCE);
-    default: return PlayerInputCheck(device, input, Vector2Zero(), 0);
+        switch (mapping.method)
+        {
+        case INPUT_METHOD_MOUSE_BUTTON: return IsInputMouseButtonDown(mapping.value);
+        case INPUT_METHOD_KEYBOARD_KEY: return IsInputKeyboardKeyDown(mapping.value);
+        case INPUT_METHOD_CURSOR_POSITION: return InputMouseCursorPosition(mapping.value, EntityCenter(player.entity));
+        default: break;
+        }
     }
-}
-
-f32 PlayerCheckAction(Player *player, PlayerAction action)
-{
-    f32 input_value = player_action_check(*player, action, player->using_gamepad);
-    if (input_value == 0)
+    else if (device >= 0)
     {
-        input_value = player_action_check(*player, action, !player->using_gamepad);
-        if (input_value > 0) { player->using_gamepad = !player->using_gamepad; }
+        switch (mapping.method)
+        {
+        case INPUT_METHOD_GAMEPAD_BUTTON: return IsInputGamepadButtonDown(device, mapping.value);
+        case INPUT_METHOD_GAMEPAD_TRIGGER: return InputGamepadTriggerPressure(device, mapping.value);
+        case INPUT_METHOD_GAMEPAD_JOYSTICK: return InputGamepadJoystickOffset(device, mapping.value);
+        default: break;
+        }
     }
-    return input_value;
+    return 0;
 }
 
 void PlayerMove(Player *player)
 {
-    f32 move_x = PlayerCheckAction(player, ACTION_MOVE_RIGHT) - PlayerCheckAction(player, ACTION_MOVE_LEFT);
-    f32 move_y = PlayerCheckAction(player, ACTION_MOVE_DOWN) - PlayerCheckAction(player, ACTION_MOVE_UP);
+    f32 move_x = PlayerGetAction(*player, ACTION_MOVE_RIGHT) - PlayerGetAction(*player, ACTION_MOVE_LEFT);
+    f32 move_y = PlayerGetAction(*player, ACTION_MOVE_DOWN) - PlayerGetAction(*player, ACTION_MOVE_UP);
 
     player->entity.velocity = Vector2Zero();
 
@@ -138,8 +191,8 @@ void PlayerMove(Player *player)
 
 void PlayerAim(Player *player)
 {
-    Vector2 aim_delta = {PlayerCheckAction(player, ACTION_AIM_RIGHT) - PlayerCheckAction(player, ACTION_AIM_LEFT),
-                         PlayerCheckAction(player, ACTION_AIM_DOWN) - PlayerCheckAction(player, ACTION_AIM_UP)};
+    Vector2 aim_delta = {PlayerGetAction(*player, ACTION_AIM_RIGHT) - PlayerGetAction(*player, ACTION_AIM_LEFT),
+                         PlayerGetAction(*player, ACTION_AIM_DOWN) - PlayerGetAction(*player, ACTION_AIM_UP)};
 
     if (aim_delta.x == 0 && aim_delta.y == 0)
     {
@@ -148,166 +201,160 @@ void PlayerAim(Player *player)
         if (aim_delta.x == 0 && aim_delta.y == 0) { return; } // If the player is static the rotation should not change
     }
 
-    f32 angle = Vector2Angle((Vector2){1, 0}, aim_delta); // Angle with Y-AXIS
+    f32 angle = Vector2AngleFromXAxis(aim_delta); // Angle from X-AXIS
     if (angle < 0) { angle += TAU; }
-    player->entity.rotation = angle;
+
+    EntitySetRotation(&player->entity, angle);
 }
 
-// void PlayerAim(Player *player)
-// {
-//     Vector2 aim_delta = {PlayerCheckAction(player, ACTION_AIM_RIGHT) - PlayerCheckAction(player, ACTION_AIM_LEFT),
-//                          PlayerCheckAction(player, ACTION_AIM_DOWN) - PlayerCheckAction(player, ACTION_AIM_UP)};
-//
-//     f32 distance = Vector2Length(aim_delta);
-//     f32 threshold = PLAYER_AIMING_SIGHT_MIN_DISTANCE / (f32)PLAYER_AIMING_SIGHT_MAX_DISTANCE;
-//
-//     if (distance < threshold)
-//     {
-//         Vector2 aim_position = Vector2Scale(Vector2UnitCirclePoint(player->entity.rotation), PLAYER_AIMING_SIGHT_MIN_DISTANCE);
-//
-//         player->aiming_at = Vector2Add(aim_position, EntityCenter(player->entity));
-//     }
-//     else
-//     {
-//         f32 angle = Vector2Angle((Vector2){1, 0}, aim_delta); // Angle with Y-AXIS
-//         if (angle < 0) { angle += TAU; }
-//
-//         Vector2 aim_position = distance > 1 ? Vector2Scale(Vector2UnitCirclePoint(angle), PLAYER_AIMING_SIGHT_MAX_DISTANCE)
-//                                             : Vector2Scale(aim_delta, PLAYER_AIMING_SIGHT_MAX_DISTANCE);
-//         aim_position = Vector2Add(aim_position, EntityCenter(player->entity));
-//
-//         player->aiming_at = aim_position;
-//         player->entity.rotation = angle;
-//     }
-// }
-
-void player_shoot(Player *player, AbilityProjectile *ability, PlayerAction action, Vector2 projectile_size, f32 projectile_speed)
+void PlayerShoot(Player *player,
+                 AbilityProjectile *ability,
+                 Action action,
+                 BoundingCircle bounding_circle,
+                 Vector2 projectile_size,
+                 f32 projectile_speed)
 {
-    if (is_cooldown_ready(ability->cooldown))
+    if (IsCooldownReady(ability->cooldown))
     {
-        bool is_shooting = CeilNormalizedValue(PlayerCheckAction(player, action));
+        bool is_shooting = CeilNormalizedValue(PlayerGetAction(*player, action));
 
         if (is_shooting)
         {
             f32 rotation = player->entity.rotation;
 
             Vector2 rotation_vector = Vector2UnitCirclePoint(rotation + PI_HALF); // To offset the shoot horizontally
-            Vector2 offset = Vector2Scale(rotation_vector, player->alternate_shooting ? -PLAYER_CANNONS_OFFSET : PLAYER_CANNONS_OFFSET);
+            Vector2 offset = Vector2Scale(rotation_vector, player->_alternate_shooting ? -PLAYER_CANNONS_OFFSET : PLAYER_CANNONS_OFFSET);
             offset = Vector2Subtract(offset, Vector2Scale(projectile_size, 0.5));
 
             Vector2 position = Vector2Add(EntityCenter(player->entity), offset);
 
-            ProjectileCreate(PROYECTILE_PLAYER,
-                             (Entity){
-                                 .position = position,
-                                 .size = projectile_size,
-                                 .movement_speed = Vector2Scale(Vector2UnitCirclePoint(rotation), projectile_speed),
-                                 .velocity = {0},
-                                 .rotation = rotation,
-                                 .draw_rotation = PROJECTILE_DRAW_ROTATION,
-                             },
-                             ability->damage,
-                             ability->range);
+            ProjectileCreate(
+                PROYECTILE_PLAYER, position, projectile_size, projectile_speed, rotation, bounding_circle, ability->damage, ability->range);
 
-            cooldown_start(&ability->cooldown);
-            player->alternate_shooting = !player->alternate_shooting;
+            CooldownStart(&ability->cooldown);
+            player->_alternate_shooting = !player->_alternate_shooting;
         }
     }
 }
 
 void PlayerShootBasic(Player *player)
 {
-    player_shoot(player, &player->shooting, ACTION_ABILITY_SHOOT, PROJECTILE_BASIC_SIZE, PROJECTILE_BASIC_SPEED);
+    PlayerShoot(player,
+                &player->ability_shooting,
+                ACTION_ABILITY_SHOOT,
+                PROJECTILE_BASIC_BOUNDING_CIRCLE(player->entity.rotation),
+                PROJECTILE_BASIC_SIZE,
+                PROJECTILE_BASIC_SPEED);
 }
 
 void PlayerShootMissile(Player *player)
 {
-    player_shoot(player, &player->shooting_missile, ACTION_ABILITY_SHOOT_MISSILE, PROJECTILE_MISSILE_SIZE, PROJECTILE_MISSILE_SPEED);
+    PlayerShoot(player,
+                &player->ability_missile,
+                ACTION_ABILITY_MISSILE,
+                PROJECTILE_MISSILE_BOUNDING_CIRCLE(player->entity.rotation),
+                PROJECTILE_MISSILE_SIZE,
+                PROJECTILE_MISSILE_SPEED);
 }
 
-void player_aiming_sight_draw(Player player)
+void PlayerDamage(Player *player, u32 damage)
 {
-    Vector2 half_size = Vector2Scale(PLAYER_AIMING_SIGHT_SIZE, 0.5);
-
-    Vector2 points[3] = {{-half_size.x, half_size.y}, {0, -half_size.y}, {half_size.x, half_size.y}};
-    Vector2 rotation_vector = Vector2UnitCirclePoint(player.entity.rotation);
-
-    for (u32 i = 0; i < 3; ++i) { points[i] = Vector2Subtract(player.aiming_at, Vector2Multiply(rotation_vector, points[i])); }
-    // for (u32 i = 0; i < 3; ++i) { points[i] = Vector2Add(points[i], player.aiming_at); }
-
-    DrawLineEx(points[0], points[1], PLAYER_AIMING_SIGHT_THICKNESS, WHITE);
-    DrawLineEx(points[2], points[1], PLAYER_AIMING_SIGHT_THICKNESS, WHITE);
+    if (player->health.current <= damage)
+    {
+        player->health.current = 0;
+        GameStateSetPlayerGameOver(player);
+    }
+    else { player->health.current -= damage; }
 }
 
-#ifdef DEBUG
-#define player_rotation_draw(player)                                                                                                       \
-    do {                                                                                                                                   \
-        Font __font = state.fonts[0];                                                                                                      \
-        i32 __font_size = 16;                                                                                                              \
-                                                                                                                                           \
-        const char *__texts[8] = {"0 PI\n0 deg",                                                                                           \
-                                  "1/4 PI\n45 deg",                                                                                        \
-                                  "2/4 PI\n90 deg",                                                                                        \
-                                  "3/4 PI\n135 deg",                                                                                       \
-                                  "1 PI\n180 deg",                                                                                         \
-                                  "5/4 PI\n225 deg",                                                                                       \
-                                  "6/4 PI\n270 deg",                                                                                       \
-                                  "7/4 PI\n315 deg"};                                                                                      \
-        f32 __rads = 0;                                                                                                                    \
-                                                                                                                                           \
-        Vector2 __entity_center = EntityCenter(player.entity);                                                                             \
-        f32 __radius = PLAYER_AIMING_SIGHT_MIN_DISTANCE * 2;                                                                               \
-                                                                                                                                           \
-        for (u32 __i = 0; __i < 8; ++__i, __rads += PI_QUARTER)                                                                            \
-        {                                                                                                                                  \
-            const char *__text = __texts[__i];                                                                                             \
-            Vector2 __pos = {cosf(__rads), sinf(__rads)};                                                                                  \
-            __pos = Vector2Scale(__pos, __radius);                                                                                         \
-            __pos = Vector2Add(__pos, __entity_center);                                                                                    \
-                                                                                                                                           \
-            Vector2 __text_measure = MeasureTextEx(__font, __text, __font_size, -1);                                                       \
-            Vector2 __text_center = Vector2Scale(__text_measure, 0.5);                                                                     \
-                                                                                                                                           \
-            __pos.y -= __text_measure.y * 0.5;                                                                                             \
-            switch (__i)                                                                                                                   \
-            {                                                                                                                              \
-            case 2:                                                                                                                        \
-            case 6: __pos.x -= __text_center.x; break;                                                                                     \
-            case 3:                                                                                                                        \
-            case 4:                                                                                                                        \
-            case 5: __pos.x -= __text_measure.x; break;                                                                                    \
-            }                                                                                                                              \
-                                                                                                                                           \
-            DrawLineV(__entity_center, Vector2Add(__text_center, __pos), Fade(SKYBLUE, 0.25));                                             \
-            DrawTextEx(__font, __text, __pos, __font_size, -1, BLUE);                                                                      \
-        }                                                                                                                                  \
-    } while (0)
-#else
-#define player_rotation_draw(player)
-#endif
+void __PlayerRotationDraw(Player player)
+{
+    if (state->testing_draw_player_rotation)
+    {
+        Font __font = state->font;
+        i32 __font_size = 16;
+
+        const char *__texts[8] = {"0 PI\n0 deg",
+                                  "1/4 PI\n45 deg",
+                                  "2/4 PI\n90 deg",
+                                  "3/4 PI\n135 deg",
+                                  "1 PI\n180 deg",
+                                  "5/4 PI\n225 deg",
+                                  "6/4 PI\n270 deg",
+                                  "7/4 PI\n315 deg"};
+        f32 __rads = 0;
+
+        Vector2 __entity_center = EntityCenter(player.entity);
+        f32 __radius = TESTING_PLAYER_ROTATION_DIAGRAM_DISTANCE;
+
+        for (u32 __i = 0; __i < 8; ++__i, __rads += PI_QUARTER)
+        {
+            const char *__text = __texts[__i];
+            Vector2 __pos = {cosf(__rads), sinf(__rads)};
+            __pos = Vector2Scale(__pos, __radius);
+            __pos = Vector2Add(__pos, __entity_center);
+
+            Vector2 __text_measure = MeasureTextEx(__font, __text, __font_size, -1);
+            Vector2 __text_center = Vector2Scale(__text_measure, 0.5);
+
+            __pos.y -= __text_measure.y * 0.5;
+            switch (__i)
+            {
+            case 2:
+            case 6: __pos.x -= __text_center.x; break;
+            case 3:
+            case 4:
+            case 5: __pos.x -= __text_measure.x; break;
+            }
+
+            DrawLineV(__entity_center, Vector2Add(__text_center, __pos), Fade(SKYBLUE, 0.25));
+            DrawTextEx(__font, __text, __pos, __font_size, -1, BLUE);
+        }
+    }
+}
 
 void PlayerDraw(Player player)
 {
     EntityDraw(player.entity, SpaceshipTextureLocation(player.type));
-    player_aiming_sight_draw(player);
-    player_rotation_draw(player);
+    __PlayerRotationDraw(player);
 }
+
+// ----------------------------------------------------------------------------
+// ---- Enemy -----------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 Enemy *EnemyCreate(SpaceshipType type, Vector2 position, Vector2 movement_speed, f32 rotation)
 {
-    Enemy enemy = {.entity = {.position = position, .size = ENEMY_SIZE, .movement_speed = movement_speed, .rotation = rotation},
+    Enemy enemy = {.entity = {.position = position,
+                              .size = ENEMY_SIZE,
+                              .movement_speed = movement_speed,
+                              .rotation = rotation,
+                              ._draw_rotation = ENEMY_DRAW_ROTATION,
+                              .bounding_circle = ENEMY_BOUNDING_CIRCLE(rotation)},
                    .type = type,
-                   .shooting = ABILITY_SHOOT};
+                   .health = ENEMY_HEALTH,
 
-    return (Enemy *)ObjectPoolAdd(&state.enemies, &enemy);
+                   .ability_shooting = ENEMY_ABILITY_SHOOT};
+
+    return (Enemy *)ObjectPoolAdd(&state->enemies, &enemy);
+}
+
+bool EnemyDamage(Enemy *enemy, u32 damage)
+{
+    if (enemy->health.current <= damage)
+    {
+        enemy->health.current = 0;
+        return true;
+    }
+    else
+    {
+        enemy->health.current -= damage;
+        return false;
+    }
 }
 
 void EnemyDraw(Enemy enemy)
 {
-    DrawTexturePro(state.spritesheet,
-                   SpaceshipTextureLocation(enemy.type),
-                   (Rectangle){enemy.entity.position.x, enemy.entity.position.y, enemy.entity.size.x, enemy.entity.size.y},
-                   (Vector2){0},
-                   enemy.entity.rotation,
-                   WHITE);
+    EntityDraw(enemy.entity, SpaceshipTextureLocation(enemy.type));
+    HealthBarDraw(enemy.health, enemy.entity, MAROON, RED);
 }

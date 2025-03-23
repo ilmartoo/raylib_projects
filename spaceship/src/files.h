@@ -20,7 +20,7 @@
 // ---- Saves Folders ---------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-#define PROFILES_DIR "profiles/"
-#define PROFILES_DIR "universes/"
+#define PROFILES_DIR  "profiles/"
+#define UNIVERSES_DIR "universes/"
 
 #endif // __SOURCE_FILES_H_

@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "arena.h"
-#include "object_pool.h"
+#include "collisions.h"
 #include "debug.h"
 #include "debug_panel.h"
 #include "entities.h"
 #include "files.h"
 #include "inputs.h"
 #include "memory_utils.h"
+#include "object_pool.h"
 #include "rayheader.h"
 #include "state.h"
 
@@ -19,8 +21,66 @@
 #define GAME_TITLE     "Spaceship"
 #define GAME_ICON_FILE "spaceship-icon.png"
 
-#define INITIAL_SCREEN_HEIGHT 1000
-#define INITIAL_SCREEN_WIDTH  1600
+// ----------------------------------------------------------------------------
+// ---- Testing ---------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+void GameDebugGenerateEnemiesAroundPlayer(void)
+{
+    ForEachObjectPoolObject(&state->enemies, Enemy, iter) { ObjectPoolPop(&state->enemies, iter.index); } // Might remove later on
+
+#define ENEMIES_CREATED_AT_START         4
+#define ENEMIES_CREATED_AT_START_SPACING 400
+
+    Vector2 player_center = EntityCenter(state->players[0].entity);
+
+    for (u32 i = 0; i < ENEMIES_CREATED_AT_START; ++i)
+    {
+        f32 rotation = Deg2Rad(GetRandomValue(0, MAX_DEGS));
+        Vector2 pos = Vector2Add(player_center, Vector2Scale(Vector2UnitCirclePoint(rotation), ENEMIES_CREATED_AT_START_SPACING));
+
+        EnemyCreate(i & 1 ? SPACESHIP_ENEMY_UPGRADED : SPACESHIP_ENEMY_BASE,
+                    pos,
+                    ENEMY_MOVEMENT_SPEED,
+                    Vector2AngleFromXAxis(Vector2Subtract(player_center, pos)));
+    }
+}
+
+void TestingInput(void)
+{
+    // Pause time (PAUSE ?)
+    if (IsKeyPressed(KEY_ZERO)) { state->time_running = !state->time_running; }
+
+    // Generate random enemies around player 0
+    if (IsKeyPressed(KEY_ONE)) { GameDebugGenerateEnemiesAroundPlayer(); }
+
+    // Toggle bounding circles
+    if (IsKeyPressed(KEY_TWO)) { state->testing_draw_bounding_circles = !state->testing_draw_bounding_circles; }
+
+    // Toggle player rotation
+    if (IsKeyPressed(KEY_THREE)) { state->testing_draw_player_rotation = !state->testing_draw_player_rotation; }
+
+    // Toggle maximized window
+    if (IsKeyPressed(KEY_SEVEN)) { MaximizeWindow(); }
+
+    // Toggle borderless window
+    if (IsKeyPressed(KEY_EIGHT)) { ToggleBorderlessWindowed(); }
+
+    // Toggle fullscreen
+    if (IsKeyPressed(KEY_NINE)) { ToggleFullscreen(); }
+
+    // Game speed
+    bool increase_speed = IsKeyPressed(KEY_PAGE_UP);
+    bool decrease_speed = IsKeyPressed(KEY_PAGE_DOWN);
+    if (increase_speed != decrease_speed)
+    {
+        if (increase_speed && state->time_speed_magnitude < GAME_STATE_TIME_SPEED_MAGNITUDE_ABSOLUTE_MAX) { ++state->time_speed_magnitude; }
+        if (decrease_speed && state->time_speed_magnitude > -GAME_STATE_TIME_SPEED_MAGNITUDE_ABSOLUTE_MAX)
+        {
+            --state->time_speed_magnitude;
+        }
+    }
+}
 
 // ----------------------------------------------------------------------------
 // ---- Debug -----------------------------------------------------------------
@@ -31,28 +91,18 @@
 
 DebugPanel *dbg_panels[2];
 
-void debug_initialize(void)
+// Debug panels initialization
+void GameDebugInitialize(void)
 {
-    Font section_font = FontFromFamily(FONT_ATKINSON_BOLD);
-    Font entry_font = FontFromFamily(FONT_ATKINSON_REGULAR);
-    dbg_panels[0] = DebugPanelCreate(DARKGREEN, section_font, entry_font);
-    dbg_panels[1] = DebugPanelCreate(GREEN, section_font, entry_font);
+    dbg_panels[0] = DebugPanelCreate(DARKGREEN, state->font);
+    dbg_panels[1] = DebugPanelCreate(GREEN, state->font);
 }
 
-void debug_input(void)
-{
-    if (IsKeyPressed(KEY_P)) { state.time_running = !state.time_running; }
+// Debug input check
+void GameDebugInput(void) { /* Empty for now */ }
 
-    bool increase_speed = IsKeyPressed(KEY_UP);
-    bool decrease_speed = IsKeyPressed(KEY_DOWN);
-    if (increase_speed != decrease_speed)
-    {
-        if (increase_speed && state.time_speed_magnitude < GAME_STATE_TIME_SPEED_MAGNITUDE_ABSOLUTE_MAX) { ++state.time_speed_magnitude; }
-        if (decrease_speed && state.time_speed_magnitude > -GAME_STATE_TIME_SPEED_MAGNITUDE_ABSOLUTE_MAX) { --state.time_speed_magnitude; }
-    }
-}
-
-void debug_update(void)
+// Debug update
+void GameDebugUpdate(void)
 {
     DebugPanel *timings_panel = dbg_panels[0], *entities_panel = dbg_panels[1];
     DebugPanelClean(timings_panel);
@@ -60,49 +110,46 @@ void debug_update(void)
 
     DebugPanelAddTitle(timings_panel, "TIMINGS");
     DebugPanelAddEntry(timings_panel, TextFormat("%d fps", GetFPS()));
-    DebugPanelAddEntry(timings_panel, TextFormat("%d%% speed", 100 + 20 * state.time_speed_magnitude));
-    DebugPanelAddEntry(timings_panel, TextFormat("Game %s", state.time_running ? "running" : "paused"));
+    DebugPanelAddEntry(timings_panel, TextFormat("%d%% speed", 100 + 20 * state->time_speed_magnitude));
+    DebugPanelAddEntry(timings_panel, TextFormat("Game %s", state->time_running ? "running" : "paused"));
 
-    ObjectPoolForEachObject(&state.players, Player, iter)
+    ForEachPlayerVal(iter)
     {
-        DebugPanelAddTitle(entities_panel, TextFormat("PLAYER %d", iter.index));
-        DebugPanelAddEntry(entities_panel, TextFormat("Rotation: %.2f deg", RAD2DEG * iter.object->entity.rotation));
-        DebugPanelAddEntry(entities_panel,
-                           TextFormat("Velocity: (%.2f, %.2f)", iter.object->entity.velocity.x, iter.object->entity.velocity.y));
+        DebugPanelAddTitle(dbg_panels[1], TextFormat("PLAYER %d", iter.index));
+        DebugPanelAddEntry(dbg_panels[1], TextFormat("Rotation: %.2f deg", Rad2Deg(iter.player.entity.rotation)));
+
+        Vector2 velocity = iter.player.entity.velocity;
+        DebugPanelAddEntry(dbg_panels[1], TextFormat("Velocity: (%.2f, %.2f)", velocity.x, velocity.y));
     }
 
     DebugPanelAddTitle(entities_panel, "PLAYER PROYECTILES");
-    DebugPanelAddEntry(entities_panel, TextFormat("Chunks: %u", ObjectPoolChunkCount(state.projectiles_players)));
-    DebugPanelAddEntry(entities_panel, TextFormat(" Valid: %u", ObjectPoolObjectCount(state.projectiles_players)));
+    DebugPanelAddEntry(entities_panel, TextFormat("Chunks: %u", ObjectPoolChunkCount(state->projectiles_players)));
+    DebugPanelAddEntry(entities_panel, TextFormat("Valid: %u", ObjectPoolObjectCount(state->projectiles_players)));
 
     DebugPanelAddTitle(entities_panel, "ENEMIES");
-    DebugPanelAddEntry(entities_panel, TextFormat("Chunks: %u", ObjectPoolChunkCount(state.enemies)));
-    DebugPanelAddEntry(entities_panel, TextFormat(" Valid: %u", ObjectPoolObjectCount(state.enemies)));
+    DebugPanelAddEntry(entities_panel, TextFormat("Chunks: %u", ObjectPoolChunkCount(state->enemies)));
+    DebugPanelAddEntry(entities_panel, TextFormat("Valid: %u", ObjectPoolObjectCount(state->enemies)));
 
     DebugPanelAddTitle(entities_panel, "ENEMY PROYECTILES");
-    DebugPanelAddEntry(entities_panel, TextFormat("Chunks: %u", ObjectPoolChunkCount(state.projectiles_enemies)));
-    DebugPanelAddEntry(entities_panel, TextFormat(" Valid: %u", ObjectPoolObjectCount(state.projectiles_enemies)));
+    DebugPanelAddEntry(entities_panel, TextFormat("Chunks: %u", ObjectPoolChunkCount(state->projectiles_enemies)));
+    DebugPanelAddEntry(entities_panel, TextFormat("Valid: %u", ObjectPoolObjectCount(state->projectiles_enemies)));
 }
 
-void debug_clear(void)
+// Debug clear
+void GameDebugClear(void)
 {
     DebugPanelDelete(dbg_panels[0]);
     DebugPanelDelete(dbg_panels[1]);
 }
 
-void debug_all()
+// Debug draw
+void GameDebugDraw()
 {
     Vector2 timings_size = DebugPanelMeasures(*dbg_panels[0]);
     Vector2 timings_pos = DEBUG_PANEL_SCREEN_POSITION;
     Vector2 entities_pos = (Vector2){timings_pos.x, (timings_pos.y * 2) + timings_size.y};
     DebugPanelDraw(*dbg_panels[0], timings_pos);
     DebugPanelDraw(*dbg_panels[1], entities_pos);
-
-    // f32 rad = 0;
-    // u32 spacing = 100;
-    // u32 size = 150;
-    // u32 base_line_x = 100, base_line_y = 200;
-    // for (u32 i = 0; i < 8; ++i, rad += PI * 0.25 * i) { DrawLine(, YELLOW); }
 }
 #endif
 
@@ -110,146 +157,212 @@ void debug_all()
 // ---- Update ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-void update_proyectiles(void)
+// Update projectiles
+void GameUpdateProyectiles(void)
 {
     ObjectPool *pool;
-    ObjectPoolForEachObject(pool = &state->projectiles_players, Projectile, iter)
+    ForEachObjectPoolObject(pool = &state->projectiles_players, Projectile, iter)
     {
         if (!ProjectileMove(iter.object)) { ObjectPoolPop(pool, iter.index); }
     }
 
-    ObjectPoolForEachObject(pool = &state->projectiles_enemies, Projectile, iter)
+    ForEachObjectPoolObject(pool = &state->projectiles_enemies, Projectile, iter)
     {
         if (!ProjectileMove(iter.object)) { ObjectPoolPop(pool, iter.index); }
     }
 }
 
-void update_players(void)
+// Update players
+void GameUpdatePlayers(void)
 {
-    ObjectPoolForEachObject(&state->players, Player, iter)
+    ForEachPlayerRef(iter)
     {
-        PlayerMove(iter.object);
-        PlayerAim(iter.object);
-        PlayerShootBasic(iter.object);
-        PlayerShootMissile(iter.object);
+        Player *player = iter.player;
+        if (!GameStateIsPlayerGameOver(*player))
+        {
+            PlayerMove(player);
+            PlayerAim(player);
+            PlayerShootBasic(player);
+            PlayerShootMissile(player);
+        }
     }
 }
 
-void update_entities(void)
-{
-    update_players();
-    update_proyectiles();
-}
-
-void update(void)
+// Game update
+void GameUpdate(void)
 {
     GameStateUpdate();
-    update_entities();
+
+    /* Entities */
+    GameUpdatePlayers();
+    GameUpdateProyectiles();
+}
+
+// Game collision checking
+void GameCheckCollisions(void)
+{
+    ObjectPool *enemies = &state->enemies, *projectiles_enemies = &state->projectiles_enemies,
+               *projectiles_players = &state->projectiles_players;
+
+    ForEachObjectPoolObject(projectiles_enemies, Projectile, iter_projectile)
+    {
+        bool collided = false;
+        Projectile projectile = *iter_projectile.object;
+        ForEachPlayerRef(iter_player)
+        {
+            Player *player = iter_player.player;
+            if (CheckEntityCollision(player->entity, projectile.entity))
+            {
+                PlayerDamage(player, projectile.damage);
+                collided = true;
+            }
+        }
+        if (collided) { ObjectPoolPop(projectiles_enemies, iter_projectile.index); }
+    }
+
+    ForEachObjectPoolObject(projectiles_players, Projectile, iter_projectile)
+    {
+        bool collided = false;
+        Projectile projectile = *iter_projectile.object;
+        ForEachObjectPoolObject(enemies, Enemy, iter_enemy)
+        {
+            Enemy *enemy = iter_enemy.object;
+            if (CheckEntityCollision(enemy->entity, projectile.entity))
+            {
+                if (EnemyDamage(enemy, projectile.damage)) { ObjectPoolPop(enemies, iter_enemy.index); }
+                collided = true;
+            }
+        }
+        if (collided) { ObjectPoolPop(projectiles_players, iter_projectile.index); }
+    }
 }
 
 // ----------------------------------------------------------------------------
 // ---- Drawing ---------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-void draw_players(void)
+// Player drawing
+void GameDrawPlayers(void)
 {
-    ObjectPoolForEachObject(&state->players, Player, iter) { PlayerDraw(*iter.object); }
+    ForEachPlayerVal(iter) { PlayerDraw(iter.player); }
 }
 
-void draw_enemies(void)
+// Enemy drawing
+void GameDrawEnemies(void)
 {
-    ObjectPoolForEachObject(&state->enemies, Enemy, iter) { EnemyDraw(*iter.object); }
+    ForEachObjectPoolObject(&state->enemies, Enemy, iter) { EnemyDraw(*iter.object); }
 }
 
-void draw_proyectiles(void)
+// Projectile drawing
+void GameDrawProyectiles(void)
 {
-    ObjectPoolForEachObject(&state->projectiles_players, Projectile, iter) { ProjectileDraw(*iter.object); }
-    ObjectPoolForEachObject(&state->projectiles_enemies, Projectile, iter) { ProjectileDraw(*iter.object); }
+    ForEachObjectPoolObject(&state->projectiles_players, Projectile, iter) { ProjectileDraw(*iter.object); }
+    ForEachObjectPoolObject(&state->projectiles_enemies, Projectile, iter) { ProjectileDraw(*iter.object); }
 }
 
-void draw(void)
+// Game draw
+void GameDraw(void)
 {
-    BeginDrawing();
-    ClearBackground(BLACK);
+    /* Start */ BeginDrawing();
 
-    draw_players();
-    draw_enemies();
-    draw_proyectiles();
+    ClearBackground(BLANK);
+
+    GameDrawPlayers();
+    GameDrawEnemies();
+    GameDrawProyectiles();
 
 #ifdef DEBUG
-    debug_all();
+    GameDebugDraw();
 #else
     DrawFPS(10, 10);
 #endif
 
-    EndDrawing();
+    /* End */ EndDrawing();
 }
 
 // ----------------------------------------------------------------------------
 // ---- Game loop --------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-void setup_window(void)
+// Window setup
+void GameSetupWindow(void)
 {
+    i32 monitor_id = GetCurrentMonitor();
     Image icon = LoadImage(path_image(GAME_ICON_FILE));
 
-    InitWindow(INITIAL_SCREEN_WIDTH, INITIAL_SCREEN_HEIGHT, GAME_TITLE);
-    SetWindowState(FLAG_WINDOW_RESIZABLE);
+    InitWindow(GetMonitorWidth(monitor_id), GetMonitorHeight(monitor_id), GAME_TITLE);
     SetWindowIcon(icon);
+    SetWindowState(FLAG_WINDOW_RESIZABLE);
+    MaximizeWindow();
+
+    DisableCursor(); // Locks cursor into the scren
+
+    SetTargetFPS(GetMonitorRefreshRate(monitor_id));
+    SetExitKey(KEY_NULL);
 
     UnloadImage(icon);
 }
 
-void entities_initialize(void)
+// Entities initialization
+void GameInitializeEntities(void)
 {
-    PlayerCreate(SPACESHIP_FRIENDLY_BASE, Vector2Scale(Vector2From(GetScreenWidth(), GetScreenHeight()), 0.5f));
+    GameStatePlayerAdd();
+
+#ifdef DEBUG
+    GameDebugGenerateEnemiesAroundPlayer();
+#endif
 }
 
-void initialize(void)
+// Game initialization
+void GameInitialize(void)
 {
-    setup_window();
+    GameSetupWindow();
 
-    SetTargetFPS(144);
-    SetExitKey(KEY_NULL);
+    SetRandomSeed((u32)(time(NULL) % UINT_MAX));
 
     GameStateInitialization();
 
 #ifdef DEBUG
-    debug_initialize();
+    GameDebugInitialize();
 #endif
 
-    entities_initialize();
+    GameInitializeEntities();
 }
 
-void clear(void)
+// Game clear
+void GameClear(void)
 {
     CloseWindow();
     GameStateCleanup();
 
 #ifdef DEBUG
-    debug_clear();
+    GameDebugClear();
 #endif
 }
 
-void loop(void)
+// Game loop
+void GameLoop(void)
 {
     while (!WindowShouldClose()) // Detect window close button or defined exit key
     {
 #ifdef DEBUG
-        debug_input();
+        GameDebugInput();
 #endif
+        // TESTING PURPOSSES ///
+        TestingInput();
+        /////////////////
 
         if (state->time_running)
         {
-            update();
-            // check_collisions();
+            GameUpdate();
+            GameCheckCollisions();
         }
 
 #ifdef DEBUG
-        debug_update();
+        GameDebugUpdate();
 #endif
 
-        draw();
+        GameDraw();
     }
 }
 
@@ -259,9 +372,9 @@ void loop(void)
 
 i32 main(void)
 {
-    initialize(); // Game initialization
-    loop();       // Game loop
-    clear();      // Game cleaning
+    GameInitialize(); // Game initialization
+    GameLoop();       // Game loop
+    GameClear();      // Game cleaning
 
     return EXIT_SUCCESS;
 }

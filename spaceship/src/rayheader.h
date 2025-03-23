@@ -6,6 +6,7 @@
 
 #include <math.h>
 
+#include "config.h"
 #include "mathematics.h"
 #include "raylib.h"
 #include "raymath.h"
