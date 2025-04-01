@@ -33,7 +33,7 @@ PLATFORM ?= PLATFORM_DESKTOP
 #  -std=c17             defines C language mode (standard C from 2017 revision)
 #
 #  -D_DEFAULT_SOURCE    defined the _DEFAULT_SOURCE macro. Use with -std=c99 on Linux and PLATFORM_WEB, required for timespec
-FLAGS = -Wall -Werror -Wextra -Wuninitialized -Winit-self -Wno-missing-braces -Wno-unknown-pragmas -Wno-error=unknown-pragmas -std=c11 -D_DEFAULT_SOURCE  -D$(PLATFORM)
+FLAGS = -Wall -Werror -Wextra -Wuninitialized -Winit-self -Wno-missing-braces -Wno-unknown-pragmas -Wno-error=unknown-pragmas -std=c17 -D_DEFAULT_SOURCE  -D$(PLATFORM)
 
 #
 # Directories
