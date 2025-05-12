@@ -60,3 +60,6 @@ dump/
 # Editors
 .vscode/
 .obsidian/
+
+# Assets (temporal)
+assets/
