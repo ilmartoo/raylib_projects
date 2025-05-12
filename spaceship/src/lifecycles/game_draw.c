@@ -1,5 +1,6 @@
 #include "entities.h"
 #include "game_debug.h"
+#include "game_lifecycle.h"
 #include "game_state.h"
 #include "object_pool.h"
 

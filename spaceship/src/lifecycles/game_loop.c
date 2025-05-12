@@ -1,4 +1,4 @@
-#include "game.h"
+#include "game_lifecycle.h"
 #include "raylib.h"
 
 // Check if the game should end

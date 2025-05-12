@@ -1,6 +1,7 @@
 #include "collisions.h"
 #include "extra_math.h"
 #include "game_debug.h"
+#include "game_lifecycle.h"
 #include "game_state.h"
 #include "object_pool.h"
 #include "raymath.h"

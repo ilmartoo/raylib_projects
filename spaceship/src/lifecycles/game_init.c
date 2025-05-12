@@ -2,8 +2,8 @@
 #include <time.h>
 
 #include "files.h"
-#include "game.h"
 #include "game_debug.h"
+#include "game_lifecycle.h"
 #include "game_state.h"
 #include "raylib.h"
 
