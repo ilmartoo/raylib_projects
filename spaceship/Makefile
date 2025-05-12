@@ -50,23 +50,103 @@ BIN_DIR     = bin
 #
 SOURCES    = $(shell find $(SRC_DIR) -type f -name "*.c")
 OBJECTS    = $(SOURCES:$(SRC_DIR)/%.c=%.o)
-EXECUTABLE = $(PROJECT_NAME)
+EXECUTABLE = $(BIN_DIR)/$(PROJECT_NAME)
+
 #
-# Debug
+# Includes and libs (must be put AFTER source files)
 #
+INC_PATHS = $(addprefix -I ,$(INC_DIRS))
+LIB_PATHS = $(addprefix -L ,$(LIB_DIRS))
+LIBS      = -lraylib -lopengl32 -lgdi32 -lwinmm -lm
+
+################
+# Default rule #
+################
+
+.PHONY: help
+help:
+	@echo -e "\
+	The available rules are:\n\
+	- clean    Cleans the binaries folder\n\
+	* debug    Debug rules\n\
+	* testing  Testing rules\n\
+	* release  Release rules\n\
+	\n\
+	\033[1m[*]\033[0m\n\
+	These rules are available with the following sufixes:\n\
+	- clean  Cleans the compiled binaries of the build\n\
+	- prep   Cleans the related binaries\n\
+	- build  prep + Compiles the code\n\
+	- run    prep + build + Runs the compilated program\n\
+	The format is \033[1m<rule>-<sufix>\033[0m\n"
+
+###############
+# Debug rules #
+###############
+
 DBG_NAME       = debug
 DBG_DIR        = $(BIN_DIR)/$(DBG_NAME)
 DBG_EXECUTABLE = $(EXECUTABLE)-$(DBG_NAME)
 DBG_OBJECTS    = $(addprefix $(DBG_DIR)/, $(OBJECTS))
 # Flags:
-#  -00      no optimization
-#  -g       include debug information on compilation
-#  -DDEBUG  defines the DEBUG macro
-DBG_FLAGS = -O0 -g -DDEBUG
+#  -00        no optimization
+#  -g         include debug information on compilation
+#  -DDEBUG    defines the DEBUG macro
+#  -DTESTING  defines the TESTING macro
+DBG_FLAGS = -O0 -g -DDEBUG -DTESTING
 
-#
-# Release
-#
+debug-clean:
+	rm -rf $(DBG_DIR)
+
+debug-prep:
+	mkdir -p $(DBG_DIR) $(SRC_SUBDIRS:$(SRC_DIR)/%=$(DBG_DIR)/%)
+
+debug-build: debug-prep $(DBG_EXECUTABLE)
+
+debug-run: debug-build
+	$(DBG_EXECUTABLE)
+
+$(DBG_EXECUTABLE): $(DBG_OBJECTS)
+	$(CC) $(FLAGS) $(DBG_FLAGS) -o $(DBG_EXECUTABLE) $^ $(INC_PATHS) $(LIB_PATHS) $(LIBS)
+
+$(DBG_DIR)/%.o: $(SRC_DIR)/%.c
+	$(CC) $(FLAGS) $(DBG_FLAGS) -c -o $@ $< $(INC_PATHS) $(LIB_PATHS) $(LIBS)
+
+
+#################
+# Testing rules #
+#################
+
+TST_NAME       = testing
+TST_DIR        = $(BIN_DIR)/$(TST_NAME)
+TST_EXECUTABLE = $(EXECUTABLE)-$(TST_NAME)
+TST_OBJECTS    = $(addprefix $(TST_DIR)/, $(OBJECTS))
+# Flags:
+#  -00        no optimization
+#  -DTESTING  defines the TESTING macro
+TST_FLAGS = -O0 -DTESTING
+
+testing-clean:
+	rm -rf $(TST_DIR)
+
+testing-prep:
+	mkdir -p $(TST_DIR) $(SRC_SUBDIRS:$(SRC_DIR)/%=$(TST_DIR)/%)
+
+testing-build: testing-prep $(TST_EXECUTABLE)
+
+testing-run: testing-build
+	$(TST_EXECUTABLE)
+
+$(TST_EXECUTABLE): $(TST_OBJECTS)
+	$(CC) $(FLAGS) $(TST_FLAGS) -o $(TST_EXECUTABLE) $^ $(INC_PATHS) $(LIB_PATHS) $(LIBS)
+
+$(TST_DIR)/%.o: $(SRC_DIR)/%.c
+	$(CC) $(FLAGS) $(TST_FLAGS) -c -o $@ $< $(INC_PATHS) $(LIB_PATHS) $(LIBS)
+
+#################
+# Release rules #
+#################
+
 REL_NAME       = release
 REL_DIR        = $(BIN_DIR)/$(REL_NAME)
 REL_EXECUTABLE = $(EXECUTABLE)-$(REL_NAME)
@@ -77,30 +157,16 @@ REL_OBJECTS    = $(addprefix $(REL_DIR)/, $(OBJECTS))
 #  -Wl,-subsystem,windows  no console on windows (no output log)
 REL_FLAGS = -O3 -s -Wl,-subsystem,windows
 
-#
-# Includes and libs (must be put AFTER source files)
-#
-INC_PATHS = $(addprefix -I ,$(INC_DIRS))
-LIB_PATHS = $(addprefix -L ,$(LIB_DIRS))
-LIBS      = -lraylib -lopengl32 -lgdi32 -lwinmm -lm
+release-clean:
+	rm -rf $(REL_DIR)
 
-.PHONY: clean debug
+release-prep:
+	mkdir -p $(REL_DIR) $(SRC_SUBDIRS:$(SRC_DIR)/%=$(REL_DIR)/%)
 
-#
-# Debug build
-#
-debug: prep-debug $(DBG_EXECUTABLE)
+release-build: release-prep $(REL_EXECUTABLE)
 
-$(DBG_EXECUTABLE): $(DBG_OBJECTS)
-	$(CC) $(FLAGS) $(DBG_FLAGS) -o $(DBG_EXECUTABLE) $^ $(INC_PATHS) $(LIB_PATHS) $(LIBS)
-
-$(DBG_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(FLAGS) $(DBG_FLAGS) -c -o $@ $< $(INC_PATHS) $(LIB_PATHS) $(LIBS)
-
-#
-# Release build
-#
-release: prep-release $(REL_EXECUTABLE)
+release-run: release-build
+	$(REL_EXECUTABLE)
 
 $(REL_EXECUTABLE): $(REL_OBJECTS)
 	$(CC) $(FLAGS) $(REL_FLAGS) -o $(REL_EXECUTABLE) $^ $(INC_PATHS) $(LIB_PATHS) $(LIBS)
@@ -108,26 +174,9 @@ $(REL_EXECUTABLE): $(REL_OBJECTS)
 $(REL_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(FLAGS) $(REL_FLAGS) -c -o $@ $< $(INC_PATHS) $(LIB_PATHS) $(LIBS)
 
-#
-# Build and execute debug
-#
-run-debug: debug
-	$(DBG_EXECUTABLE)
-
-#
-# Build and execute release
-#
-run-release: release
-	$(REL_EXECUTABLE)
-
-#
-# Other rules
-#
-prep-release:
-	mkdir -p $(REL_DIR) $(SRC_SUBDIRS:$(SRC_DIR)/%=$(REL_DIR)/%)
-
-prep-debug:
-	mkdir -p $(DBG_DIR) $(SRC_SUBDIRS:$(SRC_DIR)/%=$(DBG_DIR)/%)
+###############
+# Other rules #
+###############
 
 clean:
 	rm -rf $(BIN_DIR)
