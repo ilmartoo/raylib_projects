@@ -1,9 +1,12 @@
 #pragma once
-#ifndef __SOURCE_DEBUG_PANEL_H_
-#define __SOURCE_DEBUG_PANEL_H_
+#ifndef DEBUG_PANEL_H
+#define DEBUG_PANEL_H
+
+#ifdef DEBUG
 
 #include "arena.h"
-#include "rayheader.h"
+#include "raylib.h"
+#include "types.h"
 
 typedef struct DebugPanel
 {
@@ -69,4 +72,6 @@ Vector2 DebugPanelMeasures(DebugPanel panel);
  */
 void DebugPanelDraw(DebugPanel panel, Vector2 screen_position);
 
-#endif // __SOURCE_DEBUG_PANEL_H_
+#endif // DEBUG
+
+#endif // DEBUG_PANEL_H

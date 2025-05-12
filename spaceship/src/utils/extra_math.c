@@ -1,8 +1,7 @@
 #include <math.h>
 
-#include "debug.h"
+#include "extra_math.h"
 #include "float.h"
-#include "mathematics.h"
 #include "raylib.h"
 #include "raymath.h"
 #include "types.h"

@@ -1,10 +1,13 @@
+#ifdef DEBUG
 
 #include <stdlib.h>
 
 #include "arena.h"
 #include "debug_panel.h"
 #include "memory_utils.h"
-#include "rayheader.h"
+#include "raylib.h"
+#include "raymath.h"
+#include "types.h"
 
 DebugPanel *DebugPanelCreate(Color background_color, Font font)
 {
@@ -60,7 +63,7 @@ void DebugPanelAddEntry(DebugPanel *panel, const char *text)
     }
 }
 
-void __DebugPanelTextDraw(const char *text, f32 x, f32 y, float font_size, Font font)
+void _DebugPanelTextDraw(const char *text, f32 x, f32 y, float font_size, Font font)
 {
     DrawTextEx(font, text, (Vector2){x, y}, font_size, 0, WHITE);
 }
@@ -117,7 +120,7 @@ void DebugPanelDraw(DebugPanel panel, Vector2 screen_position)
             font_size = DEBUG_PANEL_ENTRY_FONT_SIZE;
             --remaining_entries;
         }
-        __DebugPanelTextDraw(text, x, y, font_size, panel.font);
+        _DebugPanelTextDraw(text, x, y, font_size, panel.font);
 
         y += height;
     }
@@ -130,3 +133,5 @@ void DebugPanelClean(DebugPanel *panel)
     panel->content_size = Vector2Zero();
     ArenaClear(&panel->arena);
 }
+
+#endif // DEBUG

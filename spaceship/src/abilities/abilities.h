@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __SOURCE_ABILITIES_H_
-#define __SOURCE_ABILITIES_H_
+#ifndef ABILITIES_H
+#define ABILITIES_H
 
 #include "types.h"
 
@@ -51,4 +51,4 @@ typedef struct AbilityProjectile
 #define ABILITY_PROJECTILE_DEFINITION(projectile_damage, projectile_range, cooldown_time)                                                  \
     ((AbilityProjectile){.damage = projectile_damage, .range = projectile_range, .cooldown = COOLDOWN_DEFINITION(cooldown_time)})
 
-#endif // __SOURCE_ABILITIES_H_
+#endif // ABILITIES_H

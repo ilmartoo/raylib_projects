@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __ILMARTO_MEMORY_H_
-#define __ILMARTO_MEMORY_H_
+#ifndef MEMORY_H
+#define MEMORY_H
 
 #include <stddef.h>
 
@@ -36,4 +36,4 @@ void *memory_zero(void *memory, size_t bytes);
  */
 #define memory_zero_type(memory, type) ((type *)memory_zero(memory, sizeof(type)))
 
-#endif // __ILMARTO_MEMORY_H_
+#endif // MEMORY_H

@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __ILMARTO_DATA_OBJECT_POOL_H_
-#define __ILMARTO_DATA_OBJECT_POOL_H_
+#ifndef DATA_OBJECT_POOL_H
+#define DATA_OBJECT_POOL_H
 
 #include "types.h"
 
@@ -8,7 +8,7 @@
 // ---- Internals -------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-#define __FOR_EACH_OBJECT_POOL_CHUNK(pool, type, iteration_var)                                                                            \
+#define _FOR_EACH_OBJECT_POOL_CHUNK(pool, type, iteration_var)                                                                             \
     if (pool->chunk_count > 0)                                                                                                             \
         for (                                                                                                                              \
             struct {                                                                                                                       \
@@ -21,7 +21,7 @@
               iteration_var.object = (type *)((uptr)iteration_var.object + pool->chunk_size),                                              \
               iteration_var.valid = *(bool *)((uptr)iteration_var.object + pool->object_size))
 
-#define __FOR_EACH_OBJECT_POOL_OBJECT(pool, type, iteration_var)                                                                           \
+#define _FOR_EACH_OBJECT_POOL_OBJECT(pool, type, iteration_var)                                                                            \
     if (pool->chunk_count > 0)                                                                                                             \
         for (                                                                                                                              \
             struct {                                                                                                                       \
@@ -36,7 +36,7 @@
 // ---- Declarations ----------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-#define __ILMARTO_DATA_OBJECT_POOL_DEFAULT_MEM_SIZE 1024
+#define DATA_OBJECT_POOL_DEFAULT_MEM_SIZE 1024
 
 typedef struct ObjectPool
 {
@@ -146,7 +146,7 @@ u32 ObjectPoolChunkCount(ObjectPool pool);
  * }
  * ```
  */
-#define ForEachObjectPoolChunk(pool, type, iteration_var) __FOR_EACH_OBJECT_POOL_CHUNK((pool), type, iteration_var)
+#define ForEachObjectPoolChunk(pool, type, iteration_var) _FOR_EACH_OBJECT_POOL_CHUNK((pool), type, iteration_var)
 
 /**
  * Custom for-each-loop to iterate over all the chunks with valid entities of an data object pool.
@@ -171,6 +171,6 @@ u32 ObjectPoolChunkCount(ObjectPool pool);
  * }
  * ```
  */
-#define ForEachObjectPoolObject(pool, type, iteration_var) __FOR_EACH_OBJECT_POOL_OBJECT((pool), type, iteration_var)
+#define ForEachObjectPoolObject(pool, type, iteration_var) _FOR_EACH_OBJECT_POOL_OBJECT((pool), type, iteration_var)
 
-#endif // __ILMARTO_DATA_OBJECT_POOL_H_
+#endif // DATA_OBJECT_POOL_H

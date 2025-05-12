@@ -4,14 +4,17 @@
 #include "actions.h"
 #include "debug.h"
 #include "entities.h"
-#include "rayheader.h"
-#include "state.h"
+#include "extra_math.h"
+#include "game_state.h"
+#include "raylib.h"
+#include "raymath.h"
+#include "types.h"
 
 // ----------------------------------------------------------------------------
 // ---- Entity ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-void __EntityBoundingCircleDraw(Entity entity, Color color, bool fill)
+void _EntityBoundingCircleDraw(Entity entity, Color color, bool fill)
 {
     if (state->testing_draw_bounding_circles)
     {
@@ -41,7 +44,7 @@ void EntityDraw(Entity entity, Rectangle texture_location)
                    Rad2Deg(entity.rotation + entity._draw_rotation),
                    WHITE);
 
-    __EntityBoundingCircleDraw(entity, Fade(LIME, 0.5), false);
+    _EntityBoundingCircleDraw(entity, Fade(LIME, 0.5), false);
 }
 
 // ----------------------------------------------------------------------------
@@ -133,6 +136,8 @@ Player PlayerCreate(InputDevice device, u8 player_index, SpaceshipType type, Vec
                    .bounding_circle = PLAYER_BOUNDING_CIRCLE(rotation)},
         .type = type,
         .health = PLAYER_HEALTH,
+
+        .camera = PLAYER_CAMERA(position),
 
         .ability_regeneration = PLAYER_ABILITY_REGENERATION,
         .ability_shooting = PLAYER_ABILITY_SHOOT,
@@ -267,48 +272,48 @@ void PlayerDamage(Player *player, u32 damage)
     else { player->health.current -= damage; }
 }
 
-void __PlayerRotationDraw(Player player)
+void _PlayerRotationDraw(Player player)
 {
     if (state->testing_draw_player_rotation)
     {
-        Font __font = state->font;
-        i32 __font_size = 16;
+        Font font = state->font;
+        i32 font_size = 16;
 
-        const char *__texts[8] = {"0 PI\n0 deg",
-                                  "1/4 PI\n45 deg",
-                                  "2/4 PI\n90 deg",
-                                  "3/4 PI\n135 deg",
-                                  "1 PI\n180 deg",
-                                  "5/4 PI\n225 deg",
-                                  "6/4 PI\n270 deg",
-                                  "7/4 PI\n315 deg"};
-        f32 __rads = 0;
+        const char *texts[8] = {"0 PI\n0 deg",
+                                "1/4 PI\n45 deg",
+                                "2/4 PI\n90 deg",
+                                "3/4 PI\n135 deg",
+                                "1 PI\n180 deg",
+                                "5/4 PI\n225 deg",
+                                "6/4 PI\n270 deg",
+                                "7/4 PI\n315 deg"};
+        f32 rads = 0;
 
-        Vector2 __entity_center = EntityCenter(player.entity);
-        f32 __radius = TESTING_PLAYER_ROTATION_DIAGRAM_DISTANCE;
+        Vector2 entity_center = EntityCenter(player.entity);
+        f32 radius = TESTING_PLAYER_ROTATION_DIAGRAM_DISTANCE;
 
-        for (u32 __i = 0; __i < 8; ++__i, __rads += PI_QUARTER)
+        for (u32 i = 0; i < 8; ++i, rads += PI_QUARTER)
         {
-            const char *__text = __texts[__i];
-            Vector2 __pos = {cosf(__rads), sinf(__rads)};
-            __pos = Vector2Scale(__pos, __radius);
-            __pos = Vector2Add(__pos, __entity_center);
+            const char *text = texts[i];
+            Vector2 pos = {cosf(rads), sinf(rads)};
+            pos = Vector2Scale(pos, radius);
+            pos = Vector2Add(pos, entity_center);
 
-            Vector2 __text_measure = MeasureTextEx(__font, __text, __font_size, -1);
-            Vector2 __text_center = Vector2Scale(__text_measure, 0.5);
+            Vector2 text_measure = MeasureTextEx(font, text, font_size, -1);
+            Vector2 text_center = Vector2Scale(text_measure, 0.5);
 
-            __pos.y -= __text_measure.y * 0.5;
-            switch (__i)
+            pos.y -= text_measure.y * 0.5;
+            switch (i)
             {
             case 2:
-            case 6: __pos.x -= __text_center.x; break;
+            case 6: pos.x -= text_center.x; break;
             case 3:
             case 4:
-            case 5: __pos.x -= __text_measure.x; break;
+            case 5: pos.x -= text_measure.x; break;
             }
 
-            DrawLineV(__entity_center, Vector2Add(__text_center, __pos), Fade(SKYBLUE, 0.25));
-            DrawTextEx(__font, __text, __pos, __font_size, -1, BLUE);
+            DrawLineV(entity_center, Vector2Add(text_center, pos), Fade(SKYBLUE, 0.25));
+            DrawTextEx(font, text, pos, font_size, -1, BLUE);
         }
     }
 }
@@ -316,7 +321,7 @@ void __PlayerRotationDraw(Player player)
 void PlayerDraw(Player player)
 {
     EntityDraw(player.entity, SpaceshipTextureLocation(player.type));
-    __PlayerRotationDraw(player);
+    _PlayerRotationDraw(player);
 }
 
 // ----------------------------------------------------------------------------

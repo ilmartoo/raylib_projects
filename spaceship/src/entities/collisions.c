@@ -1,6 +1,6 @@
 #include "collisions.h"
 #include "entities.h"
-#include "rayheader.h"
+#include "raymath.h"
 
 bool CheckEntityCollision(Entity e1, Entity e2)
 {

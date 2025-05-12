@@ -1,15 +1,18 @@
 #pragma once
-#ifndef __SOURCE_STATE_H_
-#define __SOURCE_STATE_H_
+#ifndef STATE_H
+#define STATE_H
 
+#include "config.h"
 #include "entities.h"
 #include "object_pool.h"
-#include "rayheader.h"
+#include "raylib.h"
+#include "types.h"
+
 // ----------------------------------------------------------------------------
 // ---- Internals -------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-#define __FOR_EACH_PLAYER_REFERENCE_FROM(iteration_var, starting_index)                                                                    \
+#define _FOR_EACH_PLAYER_REFERENCE_FROM(iteration_var, starting_index)                                                                     \
     for (                                                                                                                                  \
         struct {                                                                                                                           \
             u8 index;                                                                                                                      \
@@ -18,9 +21,9 @@
         iteration_var.index < state->player_count;                                                                                         \
         ++iteration_var.index, iteration_var.player = &state->players[iteration_var.index])
 
-#define __FOR_EACH_PLAYER_REFERENCE(iteration_var) __FOR_EACH_PLAYER_REFERENCE_FROM(iteration_var, 0)
+#define _FOR_EACH_PLAYER_REFERENCE(iteration_var) _FOR_EACH_PLAYER_REFERENCE_FROM(iteration_var, 0)
 
-#define __FOR_EACH_PLAYER_VALUE_FROM(iteration_var, starting_index)                                                                        \
+#define _FOR_EACH_PLAYER_VALUE_FROM(iteration_var, starting_index)                                                                         \
     for (                                                                                                                                  \
         struct {                                                                                                                           \
             u8 index;                                                                                                                      \
@@ -29,7 +32,7 @@
         iteration_var.index < state->player_count;                                                                                         \
         ++iteration_var.index, iteration_var.player = state->players[iteration_var.index])
 
-#define __FOR_EACH_PLAYER_VALUE(iteration_var) __FOR_EACH_PLAYER_VALUE_FROM(iteration_var, 0)
+#define _FOR_EACH_PLAYER_VALUE(iteration_var) _FOR_EACH_PLAYER_VALUE_FROM(iteration_var, 0)
 
 // ----------------------------------------------------------------------------
 // ---- Game state ------------------------------------------------------------
@@ -86,7 +89,7 @@ typedef struct GameState
 
 #define TESTING_PLAYER_ROTATION_DIAGRAM_DISTANCE 300
 
-void GameStateInitialization(void);
+void GameStateInitialize(void);
 void GameStateUpdate(void); // Call only if the state is initialized
 void GameStateCleanup(void);
 
@@ -121,7 +124,7 @@ extern GameState *state; // Game state global variable
  * }
  * ```
  */
-#define ForEachPlayerRef(iteration_var) __FOR_EACH_PLAYER_REFERENCE(iteration_var)
+#define ForEachPlayerRef(iteration_var) _FOR_EACH_PLAYER_REFERENCE(iteration_var)
 /**
  * Custom for-each-loop to iterate over all the active players.
  *
@@ -138,7 +141,7 @@ extern GameState *state; // Game state global variable
  * }
  * ```
  */
-#define ForEachPlayerRefFrom(iteration_var, offset) __FOR_EACH_PLAYER_REFERENCE_FROM(iteration_var, offset)
+#define ForEachPlayerRefFrom(iteration_var, offset) _FOR_EACH_PLAYER_REFERENCE_FROM(iteration_var, offset)
 
 /**
  * Custom for-each-loop to iterate over all the active players.
@@ -154,7 +157,7 @@ extern GameState *state; // Game state global variable
  * }
  * ```
  */
-#define ForEachPlayerVal(iteration_var) __FOR_EACH_PLAYER_VALUE(iteration_var)
+#define ForEachPlayerVal(iteration_var) _FOR_EACH_PLAYER_VALUE(iteration_var)
 /**
  * Custom for-each-loop to iterate over all the active players.
  *
@@ -171,6 +174,6 @@ extern GameState *state; // Game state global variable
  * }
  * ```
  */
-#define ForEachPlayerValFrom(iteration_var, offset) __FOR_EACH_PLAYER_VALUE_FROM(iteration_var, offset)
+#define ForEachPlayerValFrom(iteration_var, offset) _FOR_EACH_PLAYER_VALUE_FROM(iteration_var, offset)
 
-#endif // __SOURCE_STATE_H_
+#endif // STATE_H

@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __SOURCE_COLLISIONS_H_
-#define __SOURCE_COLLISIONS_H_
+#ifndef COLLISIONS_H
+#define COLLISIONS_H
 
 #include "entities.h"
 
@@ -10,4 +10,4 @@
 
 bool CheckEntityCollision(Entity e1, Entity e2);
 
-#endif // __SOURCE_COLLISIONS_H_
+#endif // COLLISIONS_H

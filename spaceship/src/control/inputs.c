@@ -2,7 +2,8 @@
 
 #include "debug.h"
 #include "inputs.h"
-#include "rayheader.h"
+#include "raylib.h"
+#include "raymath.h"
 
 Axis InputGetAxis(u8 input_with_axis) { return input_with_axis & INPUT_AXIS_FIELD; }
 

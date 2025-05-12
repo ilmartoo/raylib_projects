@@ -2,14 +2,17 @@
 
 #include "debug.h"
 #include "entities.h"
+#include "extra_math.h"
 #include "files.h"
+#include "game_state.h"
 #include "memory_utils.h"
-#include "rayheader.h"
-#include "state.h"
+#include "raylib.h"
+#include "raymath.h"
+#include "types.h"
 
 GameState *state = NULL;
 
-void GameStateInitialization(void)
+void GameStateInitialize(void)
 {
     if (state == NULL) { state = reserve(GameState); }
 
@@ -141,7 +144,7 @@ Player GameStateGetClosestPlayer(Vector2 position)
     return state->players[closest];
 }
 
-#define __GameStateSetDefaultMappings(device, default_values)                                                                              \
+#define _GameStateSetDefaultMappingsAgnostic(device, default_values)                                                                       \
     do {                                                                                                                                   \
         Mapping default_mappings[ACTION_TYPES_COUNT] = default_values;                                                                     \
         memory_copy(state->mappings[device], default_mappings, sizeof(Mapping) * ACTION_TYPES_COUNT);                                      \
@@ -149,8 +152,11 @@ Player GameStateGetClosestPlayer(Vector2 position)
 
 void GameStateSetDefaultMappings(InputDevice device)
 {
-    if (device == INPUT_DEVICE_MOUSE_AND_KEYBOARD) { __GameStateSetDefaultMappings(device, ACTION_MAPPING_DEFAULT_MOUSE_AND_KEYBOARD); }
-    else { __GameStateSetDefaultMappings(device, ACTION_MAPPING_DEFAULT_GAMEPAD); }
+    if (device == INPUT_DEVICE_MOUSE_AND_KEYBOARD)
+    {
+        _GameStateSetDefaultMappingsAgnostic(device, ACTION_MAPPING_DEFAULT_MOUSE_AND_KEYBOARD);
+    }
+    else { _GameStateSetDefaultMappingsAgnostic(device, ACTION_MAPPING_DEFAULT_GAMEPAD); }
 }
 
 Rectangle SpaceshipTextureLocation(SpaceshipType type) { return state->spritesheet_locations_spaceships[type]; }

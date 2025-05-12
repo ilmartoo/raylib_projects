@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __SOURCE_FILES_H_
-#define __SOURCE_FILES_H_
+#ifndef FILES_H
+#define FILES_H
 
 // ----------------------------------------------------------------------------
 // ---- Assets Folders --------------------------------------------------------
@@ -23,4 +23,4 @@
 #define PROFILES_DIR  "profiles/"
 #define UNIVERSES_DIR "universes/"
 
-#endif // __SOURCE_FILES_H_
+#endif // FILES_H

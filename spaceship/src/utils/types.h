@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __ILMARTO_TYPES_H_
-#define __ILMARTO_TYPES_H_
+#ifndef TYPES_H
+#define TYPES_H
 
 #include <stdbool.h> // bool, true, false
 #include <stddef.h>  // uintptr_t, ptrdiff_t, size_t
@@ -46,4 +46,4 @@ typedef double f64; // 64 bit float type
 // Allocates a new array of elements in the heap and sets the memory to 0
 #define reserve_array_zero(data_type, number_of_elements) (data_type *)calloc(number_of_elements, sizeof(data_type))
 
-#endif // __ILMARTO_TYPES_H_
+#endif // TYPES_H

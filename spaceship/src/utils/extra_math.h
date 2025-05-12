@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __SOURCE_MATHEMATICS_H_
-#define __SOURCE_MATHEMATICS_H_
+#ifndef MATHEMATICS_H
+#define MATHEMATICS_H
 
 #include "raylib.h"
 #include "types.h"
@@ -26,4 +26,4 @@ f32 Vector2AngleFromYAxis(Vector2 v);
 f32 Rad2Deg(f32 rads);
 f32 Deg2Rad(f32 degs);
 
-#endif // __SOURCE_MATHEMATICS_H_
+#endif // MATHEMATICS_H

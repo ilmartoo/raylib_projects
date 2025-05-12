@@ -1,8 +1,9 @@
 #pragma once
-#ifndef __SOURCE_INPUTS_H_
-#define __SOURCE_INPUTS_H_
+#ifndef INPUTS_H
+#define INPUTS_H
 
-#include "rayheader.h"
+#include "raylib.h"
+#include "types.h"
 
 // ----------------------------------------------------------------------------
 // ---- Definitions -----------------------------------------------------------
@@ -88,4 +89,4 @@ bool IsInputGamepadButtonDown(InputDevice gamepad_id, GamepadButton button);    
 f32 InputGamepadTriggerPressure(InputDevice gamepad_id, GamepadTrigger trigger);               // [0..1] Continuous value
 f32 InputGamepadJoystickOffset(InputDevice gamepad_id, GamepadJoystickDirection joystick_dir); // [0..1] Continuous value
 
-#endif // __SOURCE_INPUTS_H_
+#endif // INPUTS_H

@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __ILMARTO_ARENA_H_
-#define __ILMARTO_ARENA_H_
+#ifndef ARENA_H
+#define ARENA_H
 
 #include <stddef.h>
 
@@ -105,4 +105,4 @@ void ArenaClear(Arena *arena);
  */
 size_t ArenaSize(Arena arena);
 
-#endif // __ILMARTO_ARENA_H_
+#endif // ARENA_H

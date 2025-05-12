@@ -4,20 +4,20 @@
 #include "object_pool.h"
 #include "types.h"
 
-usize __DuplicateToReachTarget(usize num, usize target)
+usize _DuplicateToReachTarget(usize num, usize target)
 {
     while (num < target) { num *= 2; }
     return num;
 }
 
-void *__UpdateObjectFromObjectPool(void *object_pos, const void *const new_value, usize object_size)
+void *_UpdateObjectFromObjectPool(void *object_pos, const void *const new_value, usize object_size)
 {
     memory_copy(object_pos, new_value, object_size);
     *((bool *)object_pos + object_size) = true;
     return object_pos;
 }
 
-ObjectPool ObjectPoolCreate(usize object_size) { return ObjectPoolCreateCustom(object_size, __ILMARTO_DATA_OBJECT_POOL_DEFAULT_MEM_SIZE); }
+ObjectPool ObjectPoolCreate(usize object_size) { return ObjectPoolCreateCustom(object_size, DATA_OBJECT_POOL_DEFAULT_MEM_SIZE); }
 
 ObjectPool ObjectPoolCreateCustom(usize object_size, usize initial_mem_size)
 {
@@ -37,7 +37,7 @@ void *ObjectPoolAdd(ObjectPool *pool, const void *const data)
     {
         if (!iteration.valid)
         {
-            __UpdateObjectFromObjectPool(iteration.object, data, pool->object_size);
+            _UpdateObjectFromObjectPool(iteration.object, data, pool->object_size);
             ++pool->object_count;
             return iteration.object;
         }
@@ -48,12 +48,12 @@ void *ObjectPoolAdd(ObjectPool *pool, const void *const data)
 
     if (pool->mem_size < needed_size)
     {
-        pool->mem_size = __DuplicateToReachTarget(pool->mem_size, needed_size);
+        pool->mem_size = _DuplicateToReachTarget(pool->mem_size, needed_size);
         pool->chunks = (byte *)realloc(pool->chunks, pool->mem_size);
     }
 
     void *last_data_object = pool->chunks + current_size;
-    __UpdateObjectFromObjectPool(last_data_object, data, pool->object_size);
+    _UpdateObjectFromObjectPool(last_data_object, data, pool->object_size);
     pool->object_count = ++pool->chunk_count;
     return last_data_object;
 }

@@ -1,10 +1,10 @@
 #pragma once
-#ifndef __SOURCE_ENTITY_H_
-#define __SOURCE_ENTITY_H_
+#ifndef ENTITY_H
+#define ENTITY_H
 
 #include "abilities.h"
 #include "actions.h"
-#include "rayheader.h"
+#include "raylib.h"
 
 // ----------------------------------------------------------------------------
 // ---- Bounding box ----------------------------------------------------------
@@ -134,6 +134,7 @@ typedef struct Player
     Entity entity;
     SpaceshipType type;
     Health health;
+    Camera2D camera;
 
     AbilityRegen ability_regeneration;
     AbilityProjectile ability_shooting;
@@ -150,6 +151,7 @@ typedef struct Player
 #define PLAYER_DIAMETER              30
 #define PLAYER_SIZE                  ((Vector2){PLAYER_DIAMETER, PLAYER_DIAMETER})
 #define PLAYER_HEALTH                HEALTH_DEFINITION(100)
+#define PLAYER_CAMERA(pos)           ((Camera2D){.target = pos, .offset = {0}, .rotation = 0, .zoom = 1.f})
 #define PLAYER_BOUNDING_CIRCLE_EXTRA 3
 #define PLAYER_BOUNDING_CIRCLE(rotation)                                                                                                   \
     BOUNDING_CIRCLE_DEFINITION(0, 2, (PLAYER_DIAMETER * 0.5f) + PLAYER_BOUNDING_CIRCLE_EXTRA, rotation + PLAYER_DRAW_ROTATION)
@@ -243,4 +245,4 @@ bool EnemyDamage(Enemy *enemy, u32 damage); // True if the enemy should be elimi
 
 void EnemyDraw(Enemy enemy);
 
-#endif // __SOURCE_ENTITY_H_
+#endif // ENTITY_H

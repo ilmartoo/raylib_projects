@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __SOURCE_ACTIONS_H_
-#define __SOURCE_ACTIONS_H_
+#ifndef ACTIONS_H
+#define ACTIONS_H
 
 #include "inputs.h"
 
@@ -77,4 +77,4 @@ typedef struct Mapping
         {INPUT_METHOD_GAMEPAD_BUTTON, GAMEPAD_BUTTON_LEFT_TRIGGER_1}, /* ACTION_ABILITY_DASH */                                            \
     }
 
-#endif // __SOURCE_ACTIONS_H_
+#endif // ACTIONS_H
