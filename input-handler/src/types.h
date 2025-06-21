@@ -1,6 +1,6 @@
 #pragma once
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef __TYPES_H__
+#define __TYPES_H__
 
 #include <stdbool.h>  // bool, true, false
 #include <stddef.h>   // malloc
@@ -45,4 +45,4 @@ typedef double f64;  // 64 bit float type
 // Allocates a new array of elements in the heap and sets the memory to 0
 #define reserve_array_zero(data_type, number_of_elements) (data_type*)calloc(number_of_elements, sizeof(data_type))
 
-#endif  // TYPES_H
+#endif  // __TYPES_H__
