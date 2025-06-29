@@ -1,48 +1,19 @@
 #pragma once
-#ifndef STATE_H
-#define STATE_H
+#ifndef __STATE_H__
+#define __STATE_H__
 
 #include "config.h"
 #include "entities.h"
+#include "input-handler.h"
 #include "object_pool.h"
 #include "raylib.h"
 #include "types.h"
 
 // ----------------------------------------------------------------------------
-// ---- Internals -------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
-#define _FOR_EACH_PLAYER_REFERENCE_FROM(iteration_var, starting_index)                                                                     \
-    for (                                                                                                                                  \
-        struct {                                                                                                                           \
-            u8 index;                                                                                                                      \
-            Player *player;                                                                                                                \
-        } iteration_var = {.index = starting_index, .player = &state->players[starting_index]};                                            \
-        iteration_var.index < state->player_count;                                                                                         \
-        ++iteration_var.index, iteration_var.player = &state->players[iteration_var.index])
-
-#define _FOR_EACH_PLAYER_REFERENCE(iteration_var) _FOR_EACH_PLAYER_REFERENCE_FROM(iteration_var, 0)
-
-#define _FOR_EACH_PLAYER_VALUE_FROM(iteration_var, starting_index)                                                                         \
-    for (                                                                                                                                  \
-        struct {                                                                                                                           \
-            u8 index;                                                                                                                      \
-            Player player;                                                                                                                 \
-        } iteration_var = {.index = starting_index, .player = state->players[starting_index]};                                             \
-        iteration_var.index < state->player_count;                                                                                         \
-        ++iteration_var.index, iteration_var.player = state->players[iteration_var.index])
-
-#define _FOR_EACH_PLAYER_VALUE(iteration_var) _FOR_EACH_PLAYER_VALUE_FROM(iteration_var, 0)
-
-// ----------------------------------------------------------------------------
 // ---- Game state ------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-#define GAME_STATE_MAX_PLAYERS         4
-#define GAME_STATE_TOTAL_INPUT_DEVICES MAX_GAMEPADS + 1 // Keyboard and mouse + max number of gamepads
-
-typedef struct GameState
-{
+typedef struct GameState {
     /* Time */
     f64 time_elapsed;
     f32 time_delta_real;
@@ -50,14 +21,12 @@ typedef struct GameState
     i16 time_speed_magnitude;
     bool time_running;
 
-    /* Players */
-    u8 player_count;
-    Player players[GAME_STATE_MAX_PLAYERS];
-    bool game_over[GAME_STATE_MAX_PLAYERS];
+    /* Player */
+    Player player;
+    bool game_over;
 
     /* Inputs */
-    Mapping mappings[GAME_STATE_TOTAL_INPUT_DEVICES][ACTION_TYPES_COUNT];
-    bool gamepad_locked[MAX_GAMEPADS];
+    GreedyInputHandler input_handler;
 
     /* Entity pools */
     ObjectPool enemies;
@@ -90,25 +59,25 @@ typedef struct GameState
 #define TESTING_PLAYER_ROTATION_DIAGRAM_DISTANCE 300
 
 void GameStateInitialize(void);
-void GameStateUpdate(void); // Call only if the state is initialized
+void GameStateUpdate(void);  // Call only if the state is initialized
 void GameStateCleanup(void);
 
 bool GameStatePlayerAdd(void);
 bool GameStatePlayerRemove(void);
-bool GameStateIsPlayerGameOver(Player player);
-void GameStateSetPlayerGameOver(Player *player);
+bool GameStateIsGameOver();
+void GameStateSetGameOver();
 
 Player GameStateGetClosestPlayer(Vector2 position);
 
-void GameStateSetDefaultMappings(InputDevice device);
+void GameStateSetDefaultMappings();
 
-Rectangle SpaceshipTextureLocation(SpaceshipType type);   // Spaceship texture location
-Rectangle ProjectileTextureLocation(ProjectileType type); // Proyectile texture location
+Rectangle SpaceshipTextureLocation(SpaceshipType type);    // Spaceship texture location
+Rectangle ProjectileTextureLocation(ProjectileType type);  // Proyectile texture location
 
 f32 ScaleToDelta(f32 value);
 Vector2 Vector2ScaleToDelta(Vector2 v);
 
-extern GameState *state; // Game state global variable
+extern GameState *state;  // Game state global variable
 
 /**
  * Custom for-each-loop to iterate over all the active players.
@@ -176,4 +145,4 @@ extern GameState *state; // Game state global variable
  */
 #define ForEachPlayerValFrom(iteration_var, offset) _FOR_EACH_PLAYER_VALUE_FROM(iteration_var, offset)
 
-#endif // STATE_H
+#endif  // __STATE_H__

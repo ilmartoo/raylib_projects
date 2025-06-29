@@ -1,15 +1,14 @@
 #pragma once
-#ifndef ACTIONS_H
-#define ACTIONS_H
+#ifndef __ACTIONS_H__
+#define __ACTIONS_H__
 
-#include "inputs.h"
+#include "input-handler.h"
 
 // ----------------------------------------------------------------------------
 // ---- Actions ---------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-typedef enum Action
-{
+typedef enum Action {
     ACTION_PAUSE = 0,
 
     ACTION_MOVE_UP,
@@ -17,64 +16,69 @@ typedef enum Action
     ACTION_MOVE_DOWN,
     ACTION_MOVE_LEFT,
 
-    ACTION_AIM_UP,
-    ACTION_AIM_RIGHT,
-    ACTION_AIM_DOWN,
-    ACTION_AIM_LEFT,
+    ACTION_AIM_X,
+    ACTION_AIM_Y,
 
     ACTION_ABILITY_SHOOT,
     ACTION_ABILITY_MISSILE,
     ACTION_ABILITY_DASH,
 } Action;
 
-#define ACTION_TYPES_COUNT 12
-
-typedef struct Mapping
-{
-    InputMethod method;
-    u16 value;
-} Mapping;
+#define ACTION_TYPES_COUNT 10
 
 // ----------------------------------------------------------------------------
 // ---- Defaults --------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-#define ACTION_MAPPING_DEFAULT_MOUSE_AND_KEYBOARD                                                                                          \
-    {                                                                                                                                      \
-        {INPUT_METHOD_KEYBOARD_KEY, KEY_P}, /* ACTION_PAUSE */                                                                             \
-                                                                                                                                           \
-        {INPUT_METHOD_KEYBOARD_KEY, KEY_W}, /* ACTION_MOVE_UP */                                                                           \
-        {INPUT_METHOD_KEYBOARD_KEY, KEY_D}, /* ACTION_MOVE_RIGHT */                                                                        \
-        {INPUT_METHOD_KEYBOARD_KEY, KEY_S}, /* ACTION_MOVE_DOWN */                                                                         \
-        {INPUT_METHOD_KEYBOARD_KEY, KEY_A}, /* ACTION_MOVE_LEFT */                                                                         \
-                                                                                                                                           \
-        {INPUT_METHOD_CURSOR_POSITION, AXIS_DIRECTION_NEGATIVE_Y}, /* ACTION_AIM_UP */                                                     \
-        {INPUT_METHOD_CURSOR_POSITION, AXIS_DIRECTION_POSITIVE_X}, /* ACTION_AIM_RIGHT */                                                  \
-        {INPUT_METHOD_CURSOR_POSITION, AXIS_DIRECTION_POSITIVE_Y}, /* ACTION_AIM_DOWN */                                                   \
-        {INPUT_METHOD_CURSOR_POSITION, AXIS_DIRECTION_NEGATIVE_X}, /* ACTION_AIM_LEFT */                                                   \
-                                                                                                                                           \
-        {INPUT_METHOD_MOUSE_BUTTON, MOUSE_BUTTON_LEFT},  /* ACTION_ABILITY_SHOOT */                                                        \
-        {INPUT_METHOD_MOUSE_BUTTON, MOUSE_BUTTON_RIGHT}, /* ACTION_ABILITY_MISSILE */                                                      \
-        {INPUT_METHOD_KEYBOARD_KEY, KEY_SPACE},          /* ACTION_ABILITY_DASH */                                                         \
+InputMap default_kbm_maps[ACTION_TYPES_COUNT] = {
+    MAP_KEYBOARD_KEY_PRESSED(KEY_P), /* ACTION_PAUSE */
+
+    MAP_KEYBOARD_KEY_DOWN(KEY_W), /* ACTION_MOVE_UP */
+    MAP_KEYBOARD_KEY_DOWN(KEY_D), /* ACTION_MOVE_RIGHT */
+    MAP_KEYBOARD_KEY_DOWN(KEY_S), /* ACTION_MOVE_DOWN */
+    MAP_KEYBOARD_KEY_DOWN(KEY_A), /* ACTION_MOVE_LEFT */
+
+    MAP_MOUSE_POSITION(MOUSE_AXIS_X), /* ACTION_AIM_X */
+    MAP_MOUSE_POSITION(MOUSE_AXIS_Y), /* ACTION_AIM_Y */
+
+    MAP_MOUSE_BUTTON_DOWN(MOUSE_BUTTON_LEFT),  /* ACTION_ABILITY_SHOOT */
+    MAP_MOUSE_BUTTON_DOWN(MOUSE_BUTTON_RIGHT), /* ACTION_ABILITY_MISSILE */
+    MAP_KEYBOARD_KEY_DOWN(KEY_SPACE),          /* ACTION_ABILITY_DASH */
+};
+
+InputMap default_gpd_maps[ACTION_TYPES_COUNT] = {
+    MAP_GAMEPAD_BUTTON_PRESSED(GAMEPAD_BUTTON_MIDDLE_RIGHT), /* ACTION_PAUSE */
+
+    MAP_KEYBOARD_KEY_DOWN(KEY_W), /* ACTION_MOVE_UP */
+    MAP_KEYBOARD_KEY_DOWN(KEY_D), /* ACTION_MOVE_RIGHT */
+    MAP_KEYBOARD_KEY_DOWN(KEY_S), /* ACTION_MOVE_DOWN */
+    MAP_KEYBOARD_KEY_DOWN(KEY_A), /* ACTION_MOVE_LEFT */
+
+    MAP_MOUSE_POSITION(MOUSE_AXIS_X), /* ACTION_AIM_X */
+    MAP_MOUSE_POSITION(MOUSE_AXIS_Y), /* ACTION_AIM_Y */
+
+    MAP_MOUSE_BUTTON_DOWN(MOUSE_BUTTON_LEFT),  /* ACTION_ABILITY_SHOOT */
+    MAP_MOUSE_BUTTON_DOWN(MOUSE_BUTTON_RIGHT), /* ACTION_ABILITY_MISSILE */
+    MAP_KEYBOARD_KEY_DOWN(KEY_SPACE),          /* ACTION_ABILITY_DASH */
+};
+
+#define ACTION_MAPPING_DEFAULT_GAMEPAD                                                             \
+    {                                                                                              \
+        {INPUT_METHOD_GAMEPAD_BUTTON, GAMEPAD_BUTTON_MIDDLE_RIGHT}, /* ACTION_PAUSE */             \
+                                                                                                   \
+        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_LEFT_NEGATIVE_Y}, /* ACTION_MOVE_UP */    \
+        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_LEFT_POSITIVE_X}, /* ACTION_MOVE_RIGHT */ \
+        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_LEFT_POSITIVE_Y}, /* ACTION_MOVE_DOWN */  \
+        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_LEFT_NEGATIVE_X}, /* ACTION_MOVE_LEFT */  \
+                                                                                                   \
+        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_RIGHT_NEGATIVE_Y}, /* ACTION_AIM_UP */    \
+        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_RIGHT_POSITIVE_X}, /* ACTION_AIM_RIGHT */ \
+        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_RIGHT_POSITIVE_Y}, /* ACTION_AIM_DOWN */  \
+        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_RIGHT_NEGATIVE_X}, /* ACTION_AIM_LEFT */  \
+                                                                                                   \
+        {INPUT_METHOD_GAMEPAD_TRIGGER, GAMEPAD_TRIGGER_RIGHT},        /* ACTION_ABILITY_SHOOT */   \
+        {INPUT_METHOD_GAMEPAD_TRIGGER, GAMEPAD_TRIGGER_LEFT},         /* ACTION_ABILITY_MISSILE */ \
+        {INPUT_METHOD_GAMEPAD_BUTTON, GAMEPAD_BUTTON_LEFT_TRIGGER_1}, /* ACTION_ABILITY_DASH */    \
     }
 
-#define ACTION_MAPPING_DEFAULT_GAMEPAD                                                                                                     \
-    {                                                                                                                                      \
-        {INPUT_METHOD_GAMEPAD_BUTTON, GAMEPAD_BUTTON_MIDDLE_RIGHT}, /* ACTION_PAUSE */                                                     \
-                                                                                                                                           \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_LEFT_NEGATIVE_Y}, /* ACTION_MOVE_UP */                                            \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_LEFT_POSITIVE_X}, /* ACTION_MOVE_RIGHT */                                         \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_LEFT_POSITIVE_Y}, /* ACTION_MOVE_DOWN */                                          \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_LEFT_NEGATIVE_X}, /* ACTION_MOVE_LEFT */                                          \
-                                                                                                                                           \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_RIGHT_NEGATIVE_Y}, /* ACTION_AIM_UP */                                            \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_RIGHT_POSITIVE_X}, /* ACTION_AIM_RIGHT */                                         \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_RIGHT_POSITIVE_Y}, /* ACTION_AIM_DOWN */                                          \
-        {INPUT_METHOD_GAMEPAD_JOYSTICK, GAMEPAD_JOYSTICK_RIGHT_NEGATIVE_X}, /* ACTION_AIM_LEFT */                                          \
-                                                                                                                                           \
-        {INPUT_METHOD_GAMEPAD_TRIGGER, GAMEPAD_TRIGGER_RIGHT},        /* ACTION_ABILITY_SHOOT */                                           \
-        {INPUT_METHOD_GAMEPAD_TRIGGER, GAMEPAD_TRIGGER_LEFT},         /* ACTION_ABILITY_MISSILE */                                         \
-        {INPUT_METHOD_GAMEPAD_BUTTON, GAMEPAD_BUTTON_LEFT_TRIGGER_1}, /* ACTION_ABILITY_DASH */                                            \
-    }
-
-#endif // ACTIONS_H
+#endif  // __ACTIONS_H__

@@ -4,42 +4,9 @@
 
 #include "types.h"
 
-// ----------------------------------------------------------------------------
-// ---- Internals -------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
-#define _FOR_EACH_OBJECT_POOL_CHUNK(pool, type, iteration_var)                                                                             \
-    if (pool->chunk_count > 0)                                                                                                             \
-        for (                                                                                                                              \
-            struct {                                                                                                                       \
-                u32 index;                                                                                                                 \
-                type *object;                                                                                                              \
-                bool valid;                                                                                                                \
-            } iteration_var = {0, (type *)pool->chunks, *(bool *)(pool->chunks + pool->object_size)};                                      \
-            iteration_var.index < pool->chunk_count;                                                                                       \
-            ++iteration_var.index,                                                                                                         \
-              iteration_var.object = (type *)((uptr)iteration_var.object + pool->chunk_size),                                              \
-              iteration_var.valid = *(bool *)((uptr)iteration_var.object + pool->object_size))
-
-#define _FOR_EACH_OBJECT_POOL_OBJECT(pool, type, iteration_var)                                                                            \
-    if (pool->chunk_count > 0)                                                                                                             \
-        for (                                                                                                                              \
-            struct {                                                                                                                       \
-                u32 index;                                                                                                                 \
-                type *object;                                                                                                              \
-            } iteration_var = {0, (type *)pool->chunks};                                                                                   \
-            iteration_var.index < pool->chunk_count;                                                                                       \
-            ++iteration_var.index, iteration_var.object = (type *)((uptr)iteration_var.object + pool->chunk_size))                         \
-            if (*(bool *)((uptr)iteration_var.object + pool->object_size))
-
-// ----------------------------------------------------------------------------
-// ---- Declarations ----------------------------------------------------------
-// ----------------------------------------------------------------------------
-
 #define DATA_OBJECT_POOL_DEFAULT_MEM_SIZE 1024
 
-typedef struct ObjectPool
-{
+typedef struct {
     u32 chunk_count;
     u32 object_count;
     usize object_size;
@@ -47,6 +14,10 @@ typedef struct ObjectPool
     usize chunk_size;
     usize mem_size;
 } ObjectPool;
+
+typedef struct {
+    usize chunk;
+} ObjectPoolRef;
 
 /**
  * Creates an data object pool.
@@ -86,13 +57,13 @@ void ObjectPoolDelete(ObjectPool *pool);
  * @param data object Reference to the memory that contains the data object to include (as a shallow copy) into the data object pool.
  * @return Reference to the new data object inside the memory pool.
  */
-void *ObjectPoolAdd(ObjectPool *pool, const void *const data);
+void *ObjectPoolObjectAdd(ObjectPool *pool, const void *const data);
 /**
  * Removes the data object at the specified index from the data object pool.
  * @param pool Entity pool to use.
  * @param object_index Index of the data object to remove.
  */
-void ObjectPoolPop(ObjectPool *pool, u32 object_index);
+void ObjectPoolObjectRemove(ObjectPool *pool, u32 object_index);
 /**
  * Retrieves the data object at the specified index.
  * @param pool Entity pool to use.
@@ -137,16 +108,26 @@ u32 ObjectPoolChunkCount(ObjectPool pool);
  * ObjectPool pool = EntityPoolCreateType(float);
  *
  * float f;
- * ObjectPoolAdd(&pool, &(f = 1.0f));
- * ObjectPoolAdd(&pool, &(f = 6.7f));
+ * ObjectPoolObjectAdd(&pool, &(f = 1.0f));
+ * ObjectPoolObjectAdd(&pool, &(f = 6.7f));
  *
  * ForEachObjectPoolChunk(pool, float, itr) {
- *     printf("Iteration: %d. Entity: %.2f [%p]. %s\n", itr.index, *itr.data, itr.object, itr.is_used ? "Is alive :)"
- * : "Is dead :(");
+ *     printf("Iteration: %d. Entity: %.2f [%p]. %s\n", itr.index, *itr.data, itr.object, itr.is_used ? "Is alive :)" : "Is dead :(");
  * }
  * ```
  */
-#define ForEachObjectPoolChunk(pool, type, iteration_var) _FOR_EACH_OBJECT_POOL_CHUNK((pool), type, iteration_var)
+#define ForEachObjectPoolChunk(pool, type, iteration_var)                                                   \
+    if ((pool)->chunk_count > 0)                                                                            \
+        for (                                                                                               \
+            struct {                                                                                        \
+                u32 index;                                                                                  \
+                type *object;                                                                               \
+                bool valid;                                                                                 \
+            } iteration_var = {0, (type *)(pool)->chunks, *(bool *)((pool)->chunks + (pool)->object_size)}; \
+            iteration_var.index < (pool)->chunk_count;                                                      \
+            ++iteration_var.index,                                                                          \
+              iteration_var.object = (type *)((uptr)iteration_var.object + (pool)->chunk_size),             \
+              iteration_var.valid = *(bool *)((uptr)iteration_var.object + (pool)->object_size))
 
 /**
  * Custom for-each-loop to iterate over all the chunks with valid entities of an data object pool.
@@ -163,14 +144,23 @@ u32 ObjectPoolChunkCount(ObjectPool pool);
  * ObjectPool pool = EntityPoolCreateType(float);
  *
  * float f;
- * ObjectPoolAdd(&pool, &(f = 1.0f));
- * ObjectPoolAdd(&pool, &(f = 6.7f));
+ * ObjectPoolObjectAdd(&pool, &(f = 1.0f));
+ * ObjectPoolObjectAdd(&pool, &(f = 6.7f));
  *
  * ForEachObjectPoolObject(pool, float, itr) {
  *     printf("Iteration: %d. Entity: %.2f [%p]\n", itr.index, *itr.object, itr.object");
  * }
  * ```
  */
-#define ForEachObjectPoolObject(pool, type, iteration_var) _FOR_EACH_OBJECT_POOL_OBJECT((pool), type, iteration_var)
+#define ForEachObjectPoolObject(pool, type, iteration_var)                                                           \
+    if ((pool)->chunk_count > 0)                                                                                     \
+        for (                                                                                                        \
+            struct {                                                                                                 \
+                u32 index;                                                                                           \
+                type *object;                                                                                        \
+            } iteration_var = {0, (type *)(pool)->chunks};                                                           \
+            iteration_var.index < (pool)->chunk_count;                                                               \
+            ++iteration_var.index, iteration_var.object = (type *)((uptr)iteration_var.object + (pool)->chunk_size)) \
+            if (*(bool *)((uptr)iteration_var.object + (pool)->object_size))
 
-#endif // DATA_OBJECT_POOL_H
+#endif  // DATA_OBJECT_POOL_H

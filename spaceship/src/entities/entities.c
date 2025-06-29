@@ -100,7 +100,7 @@ Projectile *ProjectileCreate(ProjectileType type,
         ._origin = position,
     };
 
-    return (Projectile *)ObjectPoolAdd((type == PROYECTILE_PLAYER ? &state->projectiles_players : &state->projectiles_enemies),
+    return (Projectile *)ObjectPoolObjectAdd((type == PROYECTILE_PLAYER ? &state->projectiles_players : &state->projectiles_enemies),
                                        &projectile);
 }
 
@@ -341,7 +341,7 @@ Enemy *EnemyCreate(SpaceshipType type, Vector2 position, Vector2 movement_speed,
 
                    .ability_shooting = ENEMY_ABILITY_SHOOT};
 
-    return (Enemy *)ObjectPoolAdd(&state->enemies, &enemy);
+    return (Enemy *)ObjectPoolObjectAdd(&state->enemies, &enemy);
 }
 
 bool EnemyDamage(Enemy *enemy, u32 damage)

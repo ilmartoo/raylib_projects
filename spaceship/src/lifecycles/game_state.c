@@ -1,10 +1,11 @@
+#include "game_state.h"
+
 #include <stdlib.h>
 
 #include "debug.h"
 #include "entities.h"
 #include "extra_math.h"
 #include "files.h"
-#include "game_state.h"
 #include "memory_utils.h"
 #include "raylib.h"
 #include "raymath.h"
@@ -12,8 +13,7 @@
 
 GameState *state = NULL;
 
-void GameStateInitialize(void)
-{
+void GameStateInitialize(void) {
     if (state == NULL) { state = reserve(GameState); }
 
     Image spritesheet_image = LoadImage(path_image("spritesheet.png"));
@@ -25,12 +25,12 @@ void GameStateInitialize(void)
         .time_delta_simulation = 0,
         .time_running = true,
 
-        .player_count = 0, // No players for now
-        .players = {0},    // All non-initialized
-        .game_over = {0},  // All false
+        .player_count = 0,  // No players for now
+        .players = {0},     // All non-initialized
+        .game_over = {0},   // All false
 
-        .mappings = {0},       // All non-initialized
-        .gamepad_locked = {0}, // All gamepads free to use
+        .mappings = {0},        // All non-initialized
+        .gamepad_locked = {0},  // All gamepads free to use
 
         .enemies = ObjectPoolCreateType(Enemy),
         .projectiles_players = ObjectPoolCreateType(Projectile),
@@ -60,8 +60,7 @@ void GameStateInitialize(void)
     for (InputDevice device = 0; device <= INPUT_DEVICE_MOUSE_AND_KEYBOARD; ++device) { GameStateSetDefaultMappings(device); }
 }
 
-void GameStateUpdate(void)
-{
+void GameStateUpdate(void) {
     f32 delta = GetFrameTime();
 
     state->time_delta_real = delta;
@@ -71,10 +70,8 @@ void GameStateUpdate(void)
     state->time_elapsed += state->time_delta_simulation;
 }
 
-void GameStateCleanup(void)
-{
-    if (state != NULL)
-    {
+void GameStateCleanup(void) {
+    if (state != NULL) {
         ObjectPoolDelete(&state->enemies);
         ObjectPoolDelete(&state->projectiles_players);
         ObjectPoolDelete(&state->projectiles_enemies);
@@ -85,17 +82,13 @@ void GameStateCleanup(void)
     }
 }
 
-bool GameStatePlayerAdd(void)
-{
+bool GameStatePlayerAdd(void) {
     u8 count = state->player_count;
-    if (count < GAME_STATE_MAX_PLAYERS)
-    {
+    if (count < GAME_STATE_MAX_PLAYERS) {
         // Prioritize gamepads, but set mouse and keyboard as default fallback
         InputDevice device = INPUT_DEVICE_MOUSE_AND_KEYBOARD;
-        for (u8 i = 0; i < count; ++i)
-        {
-            if (IsGamepadAvailable(i) && !state->gamepad_locked[i])
-            {
+        for (u8 i = 0; i < count; ++i) {
+            if (IsGamepadAvailable(i) && !state->gamepad_locked[i]) {
                 state->gamepad_locked[i] = true;
                 device = i;
             }
@@ -111,11 +104,9 @@ bool GameStatePlayerAdd(void)
     return false;
 }
 
-bool GameStatePlayerRemove(void)
-{
+bool GameStatePlayerRemove(void) {
     u8 count = state->player_count;
-    if (count > 0)
-    {
+    if (count > 0) {
         state->gamepad_locked[state->players[count]._device] = false;
 
         --state->player_count;
@@ -124,19 +115,16 @@ bool GameStatePlayerRemove(void)
     return false;
 }
 
-bool GameStateIsPlayerGameOver(Player player) { return state->game_over[player._player_index]; }
+bool GameStateIsGameOver() { return state->game_over; }
 
-void GameStateSetPlayerGameOver(Player *player) { state->game_over[player->_player_index] = true; }
+void GameStateSetGameOver() { state->game_over = true; }
 
-Player GameStateGetClosestPlayer(Vector2 position)
-{
+Player GameStateGetClosestPlayer(Vector2 position) {
     u8 closest = 0;
     f32 closest_distance = Vector2Distance(state->players[0].entity.position, position);
-    ForEachPlayerValFrom(iter, 1)
-    {
+    ForEachPlayerValFrom(iter, 1) {
         f32 distance = Vector2Distance(iter.player.entity.position, position);
-        if (closest_distance > distance)
-        {
+        if (closest_distance > distance) {
             closest = iter.index;
             closest_distance = distance;
         }
@@ -144,19 +132,15 @@ Player GameStateGetClosestPlayer(Vector2 position)
     return state->players[closest];
 }
 
-#define _GameStateSetDefaultMappingsAgnostic(device, default_values)                                                                       \
-    do {                                                                                                                                   \
-        Mapping default_mappings[ACTION_TYPES_COUNT] = default_values;                                                                     \
-        memory_copy(state->mappings[device], default_mappings, sizeof(Mapping) * ACTION_TYPES_COUNT);                                      \
+#define _GameStateSetDefaultMappingsAgnostic(device, default_values)                                  \
+    do {                                                                                              \
+        Mapping default_mappings[ACTION_TYPES_COUNT] = default_values;                                \
+        memory_copy(state->mappings[device], default_mappings, sizeof(Mapping) * ACTION_TYPES_COUNT); \
     } while (0)
 
-void GameStateSetDefaultMappings(InputDevice device)
-{
-    if (device == INPUT_DEVICE_MOUSE_AND_KEYBOARD)
-    {
-        _GameStateSetDefaultMappingsAgnostic(device, ACTION_MAPPING_DEFAULT_MOUSE_AND_KEYBOARD);
-    }
-    else { _GameStateSetDefaultMappingsAgnostic(device, ACTION_MAPPING_DEFAULT_GAMEPAD); }
+void GameStateSetDefaultMappings() {
+    InputMap device_mappings[] = ;
+    GreedyInputHandlerDeviceMappingsSet(&state->input_handler, device);
 }
 
 Rectangle SpaceshipTextureLocation(SpaceshipType type) { return state->spritesheet_locations_spaceships[type]; }
