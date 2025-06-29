@@ -150,7 +150,7 @@ InputResult InputHandlerGetValue(InputDeviceID device, const InputMap mappings[]
 BasicInputHandler BasicInputHandlerCreate(InputDeviceID device, action_size n_actions) {
     return (BasicInputHandler){
         .device = device,
-        .mappings = reserve_array_zero(InputMap, n_actions),
+        .mappings = reserve_zero_a(InputMap, n_actions),
         .size = n_actions,
     };
 }

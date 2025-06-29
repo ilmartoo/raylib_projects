@@ -1,28 +1,20 @@
 CC       := gcc
 CC_FLAGS := -Wall -g
 
-MIDDLEWARE_SRCS   := input-handler.c float16.c
-MIDDLEWARE_FOLDER := src
+MIDDLEWARE_SRCS := input-handler.c float16.c
+MIDDLEWARE_DIR  := src
 
 BASE_OUTPUT  := input-handler.exe
 BASE_SRCS    := device-tester.c
-BASE_FOLDER  := src
-BASE_INCLUDE := $(BASE_FOLDER) 
+BASE_DIR     := src
+BASE_INCLUDE := $(addprefix -I,$(BASE_DIR)) $(addprefix -I,$(MIDDLEWARE_DIR))
+BASE_SOURCES := $(addprefix $(BASE_DIR)/,$(BASE_SRCS))  $(addprefix $(MIDDLEWARE_DIR)/,$(MIDDLEWARE_SRCS))
 
-# TESTING_OUTPUT  := tests-$(BASE_OUTPUT)
-# TESTING_SRCS    := tests.c
-# TESTING_FOLDER  := test
-# TESTING_INCLUDE := $(TESTING_FOLDER) 
-
-
-LIB_FOLDERS :=
-LIBS        := raylib opengl32 gdi32 winmm m
+LIB_DIRS    :=
+LIB_NAMES   := raylib opengl32 gdi32 winmm m
+LIBS        := $(addprefix -l,$(LIBS)) $(addprefix -L,$(LIB_DIRS))
 
 .PHONY: build
 
 build:
-	$(CC) $(CC_FLAGS) $(addprefix $(MIDDLEWARE_FOLDER)/,$(MIDDLEWARE_SRCS)) $(addprefix $(BASE_FOLDER)/,$(BASE_SRCS)) -o $(BASE_OUTPUT) $(addprefix -I,$(BASE_INCLUDE)) $(addprefix -l,$(LIBS)) $(addprefix -L,$(LIB_FOLDERS))
-
-# tests:
-# 	$(CC) $(CC_FLAGS) $(addprefix $(MIDDLEWARE_FOLDER)/,$(MIDDLEWARE_SRCS)) $(addprefix $(TESTING_FOLDER)/,$(TESTING_SRCS)) -o $(TESTING_OUTPUT) $(addprefix -I,$(TESTING_INCLUDE)) $(addprefix -l,$(LIBS)) $(addprefix -L,$(LIB_FOLDERS))
-# 	./$(TESTING_OUTPUT)
+	$(CC) $(CC_FLAGS) $(BASE_SOURCES) o $(BASE_OUTPUT) $(BASE_INCLUDE) $(LIBS)

@@ -2,10 +2,10 @@
 #ifndef __INPUTS_H__
 #define __INPUTS_H__
 
+#include "float16.h"    // IEEE 754 half-precision floating-point
 #include "rayconfig.h"  // Raylib configurations
 #include "raylib.h"     // Raylib library
 #include "types.h"      // Ilmarto's types
-#include "float16.h"    //
 
 // ----------------------------------------------------------------------------
 // ---- Input Devices and Methods ---------------------------------------------
@@ -381,20 +381,20 @@ void GreedyInputHandlerDelete(GreedyInputHandler *handler);
 /**
  * Maps an action ID with a input location.
  * @param handler Greedy input handler to modify.
- * @param device_map Defines the target device of the map. For a gamepad device, any gamepad device ID is valid.
+ * @param device Defines the target device of the map. For a gamepad device, any gamepad device ID is valid.
  * @param action_id Action ID to map.
  * @param map Input location to use for the action.
  * @return If the input mapping is valid for this device and handler.
  */
-bool GreedyInputHandlerMapSet(GreedyInputHandler *handler, InputDeviceID device_map, InputActionID action_id, const InputMap map);
+bool GreedyInputHandlerMapSet(GreedyInputHandler *handler, InputDeviceID device, InputActionID action_id, const InputMap map);
 /**
  * Maps all the action IDs with its corresponding input location. The mapping index represents the correponding action ID.
  * @param handler Greedy input handler to modify.
- * @param device_map Defines the target device of the array of mappings. For a gamepad device, any gamepad device ID is valid.
+ * @param device Defines the target device of the array of mappings. For a gamepad device, any gamepad device ID is valid.
  * @param mappings Array of input mappings to use for the actions with `size = handler.size`.
  * @return Number of invalid input mappings.
  */
-action_size GreedyInputHandlerDeviceMappingsSet(GreedyInputHandler *handler, InputDeviceID device_map, const InputMap mappings[]);
+action_size GreedyInputHandlerDeviceMappingsSet(GreedyInputHandler *handler, InputDeviceID device, const InputMap mappings[]);
 /**
  * Maps all the action IDs with its corresponding input location. The mapping index represents the correponding action ID.
  * @param handler Greedy input handler to modify.
