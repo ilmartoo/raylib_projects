@@ -1,5 +1,7 @@
 #include "float16.h"
-#include "types.h"
+
+#include <stdbool.h>
+#include <stdint.h>
 
 #define F16_SIGNUM_MASK    0x8000
 #define F16_EXP_MASK       0x7C00
@@ -19,24 +21,24 @@
 
 // Arithmetic operations //
 
-f16 f16_sub(f16 ain, f16 bin) {
-    u16 a = ain;
-    u16 b = bin;
+half f16_sub(half ain, half bin) {
+    uint16_t a = ain;
+    uint16_t b = bin;
     if (F16_SIGNUM(a ^ b)) { return f16_add(a, b ^ F16_SIGNUM_MASK); }
-    u16 sign = F16_SIGNUM(a);
+    uint16_t sign = F16_SIGNUM(a);
     a = a << 1;
     b = b << 1;
     if (a < b) {
-        u16 x = a;
+        uint16_t x = a;
         a = b;
         b = x;
         sign ^= F16_SIGNUM_MASK;
     }
-    u16 ax = a & 0xF800;
-    u16 bx = b & 0xF800;
+    uint16_t ax = a & 0xF800;
+    uint16_t bx = b & 0xF800;
     if (a >= 0xf800 || b >= 0xf800) {
         if (a > 0xF800 || b > 0xF800 || a == b) { return F16_NO_SIGNUM_MASK; }
-        u16 res = sign | F16_EXP_MASK;
+        uint16_t res = sign | F16_EXP_MASK;
         if (a == 0xf800) {
             return res;
         } else {
@@ -44,7 +46,7 @@ f16 f16_sub(f16 ain, f16 bin) {
         }
     }
     int exp_diff = ax - bx;
-    u16 exp_part = ax;
+    uint16_t exp_part = ax;
     if (exp_diff != 0) {
         int shift = exp_diff >> 11;
         if (bx != 0) {
@@ -54,17 +56,17 @@ f16 f16_sub(f16 ain, f16 bin) {
         }
     } else {
         if (bx == 0) {
-            u16 res = (a - b) >> 1;
+            uint16_t res = (a - b) >> 1;
             if (res == 0) { return res; }
             return res | sign;
         } else {
             b = (b & 2047) | 2048;
         }
     }
-    u16 r = a - b;
+    uint16_t r = a - b;
     if ((r & 0xF800) == exp_part) { return (r >> 1) | sign; }
-    u16 am = (a & 2047) | 2048;
-    u16 new_m = am - b;
+    uint16_t am = (a & 2047) | 2048;
+    uint16_t new_m = am - b;
     if (new_m == 0) { return 0; }
     while (exp_part != 0 && !(new_m & (2048))) {
         exp_part -= 0x800;
@@ -73,13 +75,13 @@ f16 f16_sub(f16 ain, f16 bin) {
     return (((new_m & 2047) | exp_part) >> 1) | sign;
 }
 
-f16 f16_add(f16 a, f16 b) {
+half f16_add(half a, half b) {
     if (F16_SIGNUM(a ^ b)) { return f16_sub(a, b ^ F16_SIGNUM_MASK); }
-    i16 sign = F16_SIGNUM(a);
+    int16_t sign = F16_SIGNUM(a);
     a &= F16_NO_SIGNUM_MASK;
     b &= F16_NO_SIGNUM_MASK;
     if (a < b) {
-        i16 x = a;
+        int16_t x = a;
         a = b;
         b = x;
     }
@@ -87,10 +89,10 @@ f16 f16_add(f16 a, f16 b) {
         if (a > F16_EXP_MASK || b > F16_EXP_MASK) { return F16_NAN_VALUE; }
         return F16_EXP_MASK | sign;
     }
-    i16 ax = F16_EXPONENT(a);
-    i16 bx = F16_EXPONENT(b);
-    i16 exp_diff = ax - bx;
-    i16 exp_part = ax;
+    int16_t ax = F16_EXPONENT(a);
+    int16_t bx = F16_EXPONENT(b);
+    int16_t exp_diff = ax - bx;
+    int16_t exp_part = ax;
     if (exp_diff != 0) {
         int shift = exp_diff >> 10;
         if (bx != 0) {
@@ -105,17 +107,17 @@ f16 f16_add(f16 a, f16 b) {
             b = (b & 1023) | 1024;
         }
     }
-    i16 r = a + b;
+    int16_t r = a + b;
     if (F16_EXPONENT(r) != exp_part) {
-        u16 am = (a & 1023) | 1024;
-        u16 new_m = (am + b) >> 1;
+        uint16_t am = (a & 1023) | 1024;
+        uint16_t new_m = (am + b) >> 1;
         r = (exp_part + 0x400) | (1023 & new_m);
     }
-    if ((u16)r >= 0x7C00u) { return sign | F16_EXP_MASK; }
+    if ((uint16_t)r >= 0x7C00u) { return sign | F16_EXP_MASK; }
     return r | sign;
 }
 
-f16 f16_mul(f16 a, f16 b) {
+half f16_mul(half a, half b) {
     int sign = F16_SIGNUM(a ^ b);
 
     if (F16_IS_INVALID(a) || F16_IS_INVALID(b)) {
@@ -124,10 +126,10 @@ f16 f16_mul(f16 a, f16 b) {
     }
 
     if (F16_IS_ZERO(a) || F16_IS_ZERO(b)) { return 0; }
-    u16 m1 = F16_MANTISSA(a);
-    u16 m2 = F16_MANTISSA(b);
+    uint16_t m1 = F16_MANTISSA(a);
+    uint16_t m2 = F16_MANTISSA(b);
 
-    i32 v = m1;
+    int32_t v = m1;
     v *= m2;
     int ax = F16_EXPONENT(a);
     int bx = F16_EXPONENT(b);
@@ -135,10 +137,10 @@ f16 f16_mul(f16 a, f16 b) {
     bx += (bx == 0);
     int new_exp = ax + bx - 15;
 
-    if (v & ((i32)1 << 21)) {
+    if (v & ((int32_t)1 << 21)) {
         v >>= 11;
         new_exp++;
-    } else if (v & ((i32)1 << 20)) {
+    } else if (v & ((int32_t)1 << 20)) {
         v >>= 10;
     } else {  // denormal
         new_exp -= 10;
@@ -156,20 +158,20 @@ f16 f16_mul(f16 a, f16 b) {
     return sign | (new_exp << 10) | (v & 1023);
 }
 
-f16 f16_div(f16 a, f16 b) {
-    i16 sign = F16_SIGNUM(a ^ b);
+half f16_div(half a, half b) {
+    int16_t sign = F16_SIGNUM(a ^ b);
     if (F16_IS_NAN(a) || F16_IS_NAN(b) || (F16_IS_INVALID(a) && F16_IS_INVALID(b)) || (F16_IS_ZERO(a) && F16_IS_ZERO(b))) {
         return F16_NAN_VALUE;
     }
     if (F16_IS_INVALID(a) || F16_IS_ZERO(b)) { return sign | F16_EXP_MASK; }
     if (F16_IS_INVALID(b) || F16_IS_ZERO(a)) { return 0; }
 
-    u16 m1 = F16_MANTISSA(a);
-    u16 m2 = F16_MANTISSA(b);
-    i32 m1_shifted = m1;
+    uint16_t m1 = F16_MANTISSA(a);
+    uint16_t m2 = F16_MANTISSA(b);
+    int32_t m1_shifted = m1;
     m1_shifted <<= 10;
-    i32 v = m1_shifted / m2;
-    u16 rem = m1_shifted % m2;
+    int32_t v = m1_shifted / m2;
+    uint16_t rem = m1_shifted % m2;
 
     int ax = F16_EXPONENT(a);
     int bx = F16_EXPONENT(b);
@@ -202,12 +204,12 @@ f16 f16_div(f16 a, f16 b) {
     return sign | (v & 1023) | (new_exp << 10);
 }
 
-f16 f16_neg(f16 v) { return F16_SIGNUM_MASK ^ v; }
+half f16_neg(half v) { return F16_SIGNUM_MASK ^ v; }
 
 // Integer transformations //
 
-f16 itof16(i32 sv) {
-    i32 v;
+half itof16(int32_t sv) {
+    int32_t v;
     int sig = 0;
     if (sv < 0) {
         v = -sv;
@@ -229,29 +231,29 @@ f16 itof16(i32 sv) {
     return (sig << 15) | (e << 10) | (v & 1023);
 }
 
-i32 f16toi(f16 a) {
-    u16 value = F16_MANTISSA(a);
-    i16 shift = F16_EXPONENT(a) - 25;
+int32_t f16toi(half a) {
+    uint16_t value = F16_MANTISSA(a);
+    int16_t shift = F16_EXPONENT(a) - 25;
     if (shift > 0) {
         value <<= shift;
     } else if (shift < 0) {
         value >>= -shift;
     }
-    if (F16_SIGNUM(a)) { return -(i32)(value); }
+    if (F16_SIGNUM(a)) { return -(int32_t)(value); }
     return value;
 }
 
 // Single-precision floating point transformations //
 
-f16 ftof16(f32 f) {
-    u32 bits = *(u32 *)&f;
-    u16 sign = (bits >> 16) & 0x8000;
-    u32 exp = (bits >> 23) & 0xFF;
-    u32 mant = bits & 0x7FFFFF;
+half ftof16(float f) {
+    uint32_t bits = *(uint32_t *)&f;
+    uint16_t sign = (bits >> 16) & 0x8000;
+    uint32_t exp = (bits >> 23) & 0xFF;
+    uint32_t mant = bits & 0x7FFFFF;
 
     if (exp == 255) {  // NaN or Inf
         if (mant != 0) {
-            u16 nan_mant = mant >> 13;
+            uint16_t nan_mant = mant >> 13;
             if (nan_mant == 0) nan_mant = 1;
             return sign | 0x7C00 | nan_mant;  // NaN
         } else {
@@ -264,17 +266,17 @@ f16 ftof16(f32 f) {
             return sign;  // Underflow to zero
         }
         // Subnormal number
-        u32 shift = 113 - exp;
+        uint32_t shift = 113 - exp;
         mant |= 0x800000;  // Add implicit 1
-        u16 submant = mant >> (shift + 13);
+        uint16_t submant = mant >> (shift + 13);
         // Rounding
         if (((mant >> (shift + 12)) & 1) && ((mant >> (shift + 13)) & 1 || (mant & ((1 << (shift + 12)) - 1)))) { submant += 1; }
         return sign | submant;
     }
 
     // Normal case
-    u16 hexp = exp - 112;
-    u32 mant_rounded = mant + 0x1000;
+    uint16_t hexp = exp - 112;
+    uint32_t mant_rounded = mant + 0x1000;
     if (mant_rounded & 0x800000) {
         mant_rounded = 0;
         hexp += 1;
@@ -287,18 +289,18 @@ f16 ftof16(f32 f) {
     return sign | (hexp << 10) | (mant_rounded >> 13);
 }
 
-f32 f16tof(f16 h) {
-    u32 sign = (h & 0x8000) << 16;
-    u32 exp = (h & 0x7C00) >> 10;
-    u32 mant = (h & 0x03FF);
+float f16tof(half h) {
+    uint32_t sign = (h & 0x8000) << 16;
+    uint32_t exp = (h & 0x7C00) >> 10;
+    uint32_t mant = (h & 0x03FF);
 
     if (exp == 0) {
         if (mant == 0) {
             // Zero
-            return *(f32 *)&sign;
+            return *(float *)&sign;
         } else {
             // Subnormal number
-            u32 shift = 0;
+            uint32_t shift = 0;
             while ((mant & 0x200) == 0) {
                 mant <<= 1;
                 shift++;
@@ -306,24 +308,24 @@ f32 f16tof(f16 h) {
             mant &= 0x3FF;  // Remove leading 1
             exp = 1;
             exp = 127 - 15 - shift;  // Adjust exponent for float32
-            u32 fbits = sign | (exp << 23) | (mant << 13);
-            return *(f32 *)&fbits;
+            uint32_t fbits = sign | (exp << 23) | (mant << 13);
+            return *(float *)&fbits;
         }
     } else if (exp == 0x1F) {
         // Inf or NaN
-        if (mant == 0) return *(f32 *)&(u32){sign | 0x7F800000};                  // Inf
-        else return *(f32 *)&(u32){sign | 0x7F800000 | (mant << 13) | 0x400000};  // NaN (qNaN)
+        if (mant == 0) return *(float *)&(uint32_t){sign | 0x7F800000};                  // Inf
+        else return *(float *)&(uint32_t){sign | 0x7F800000 | (mant << 13) | 0x400000};  // NaN (qNaN)
     }
 
     // Normalized float16 to float32
-    u32 fexp = exp + (127 - 15);
-    u32 fbits = sign | (fexp << 23) | (mant << 13);
-    return *(f32 *)&fbits;
+    uint32_t fexp = exp + (127 - 15);
+    uint32_t fbits = sign | (fexp << 23) | (mant << 13);
+    return *(float *)&fbits;
 }
 
 // Boolean operations //
 
-bool f16_gte(f16 a, f16 b) {
+bool f16_gte(half a, half b) {
     if (F16_IS_ZERO(a) && F16_IS_ZERO(b)) { return true; }
     if (F16_IS_NAN(a) || F16_IS_NAN(b)) { return false; }
     if (!F16_SIGNUM(a)) {
@@ -335,7 +337,7 @@ bool f16_gte(f16 a, f16 b) {
     }
 }
 
-bool f16_gt(f16 a, f16 b) {
+bool f16_gt(half a, half b) {
     if (F16_IS_NAN(a) || F16_IS_NAN(b)) { return false; }
     if (F16_IS_ZERO(a) && F16_IS_ZERO(b)) { return false; }
     if (!F16_SIGNUM(a)) {
@@ -347,20 +349,20 @@ bool f16_gt(f16 a, f16 b) {
     }
 }
 
-bool f16_eq(f16 a, f16 b) {
+bool f16_eq(half a, half b) {
     if (F16_IS_NAN(a) || F16_IS_NAN(b)) { return false; }
     if (F16_IS_ZERO(a) && F16_IS_ZERO(b)) { return true; }
     return a == b;
 }
 
-bool f16_lte(f16 a, f16 b) {
+bool f16_lte(half a, half b) {
     if (F16_IS_NAN(a) || F16_IS_NAN(b)) { return false; }
     return f16_gte(b, a);
 }
 
-bool f16_lt(f16 a, f16 b) {
+bool f16_lt(half a, half b) {
     if (F16_IS_NAN(a) || F16_IS_NAN(b)) { return false; }
     return f16_gt(b, a);
 }
 
-bool f16_neq(f16 a, f16 b) { return !f16_eq(a, b); }
+bool f16_neq(half a, half b) { return !f16_eq(a, b); }
