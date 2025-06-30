@@ -16,8 +16,8 @@
 // - __Negative number__: Reserved for special devices. Keyboard & Mouse being one of them.
 typedef i16 InputDeviceID;
 
-#define INPUT_DEVICE_ID_NULL               -2                                  // Device ID for no device
-#define INPUT_DEVICE_ID_KEYBOARD_AND_MOUSE -1                                  // Device ID of keyboard and mouse
+#define INPUT_DEVICE_ID_NULL               (-2)                                  // Device ID for no device
+#define INPUT_DEVICE_ID_KEYBOARD_AND_MOUSE (-1)                                  // Device ID of keyboard and mouse
 #define INPUT_DEVICE_ID_FIRST_GAMEPAD      0                                   // Device ID of the first gamepad
 #define INPUT_DEVICE_ID_LAST_GAMEPAD       (MAX_GAMEPADS - 1)                  // Device ID of the last gamepad
 #define INPUT_DEVICE_ID_DEFAULT            INPUT_DEVICE_ID_KEYBOARD_AND_MOUSE  // Default device ID
@@ -180,6 +180,13 @@ typedef enum {
     MOUSE_AXIS_Y = GAMEPAD_AXIS_LEFT_Y & GAMEPAD_AXIS_RIGHT_Y,
 } MouseAxis;
 
+// Range of values for an axis input to use
+typedef enum {
+    AXIS_RANGE_ALL,
+    AXIS_RANGE_POSITIVE,
+    AXIS_RANGE_NEGATIVE,
+} AxisRange;
+
 // Mouse Scroll input
 typedef enum {
     MOUSE_SCROLL_WHEEL = 0,
@@ -193,15 +200,6 @@ typedef u16 action_size;
 
 // An input action ID - The action IDs valid range from `0` to `2^16 - 1`
 typedef action_size InputActionID;
-
-// The valid precisions for the thresholds
-typedef enum {
-    ZERO_DECIMALS = 0,
-    ONE_DECIMAL = 1,
-    TWO_DECIMALS = 2,
-    THREE_DECIMALS = 3,
-    FOUR_DECIMALS = 4,
-} ThresholdPrecission;
 
 // An input mapping
 typedef struct {
@@ -234,15 +232,18 @@ typedef struct {
         } scroll;
         // METHOD_GAMEPAD_TRIGGER
         // METHOD_GAMEPAD_TRIGGER_NORM
+        struct {
+            u16 type;       // GamepadTrigger | other
+            f16 threshold;  // Threshold in half-precision floating point
+        } trigger;
         // METHOD_GAMEPAD_JOYSTICK
         struct {
-            u16 type;       // GamepadTrigger | GamepadJoystick | other
+            u8 type;        // GamepadJoystick | other
+            u8 range;       // AxisRange
             f16 threshold;  // Threshold in half-precision floating point
-        } axis;
+        } joystick;
     } data;
 } InputMap;
-
-#define _INPUT_MAP(method, id) ((InputMap){method, id})  // Input map creator helper
 
 // No input //
 
@@ -264,12 +265,12 @@ typedef struct {
 
 // Mouse movements input //
 
-#define MAP_MOUSE_POSITION(axis)              ((InputMap){METHOD_MOUSE_POSITION, {.movement = {axis, 0}}})
-#define MAP_MOUSE_MOVEMENT(axis)              ((InputMap){METHOD_MOUSE_MOVEMENT, {.movement = {axis, 0}}})
-#define MAP_MOUSE_SCROLL(type)                ((InputMap){METHOD_MOUSE_SCROLL, {.scroll = {type, 0}}})
-#define MAP_MOUSE_POSITION_T(axis, threshold) ((InputMap){METHOD_MOUSE_POSITION, {.movement = {axis, threshold}}})
-#define MAP_MOUSE_MOVEMENT_T(axis, threshold) ((InputMap){METHOD_MOUSE_MOVEMENT, {.movement = {axis, threshold}}})
-#define MAP_MOUSE_SCROLL_T(type, threshold)   ((InputMap){METHOD_MOUSE_SCROLL, {.scroll = {type, threshold}}})
+#define MAP_MOUSE_POSITION(axis)                      ((InputMap){METHOD_MOUSE_POSITION, {.movement = {axis, 0}}})
+#define MAP_MOUSE_MOVEMENT(axis)                      ((InputMap){METHOD_MOUSE_MOVEMENT, {.movement = {axis, 0}}})
+#define MAP_MOUSE_SCROLL(type)                        ((InputMap){METHOD_MOUSE_SCROLL, {.scroll = {type, 0}}})
+#define MAP_MOUSE_POSITION_THRESHOLD(axis, threshold) ((InputMap){METHOD_MOUSE_POSITION, {.movement = {axis, threshold}}})
+#define MAP_MOUSE_MOVEMENT_THRESHOLD(axis, threshold) ((InputMap){METHOD_MOUSE_MOVEMENT, {.movement = {axis, threshold}}})
+#define MAP_MOUSE_SCROLL_THRESHOLD(type, threshold)   ((InputMap){METHOD_MOUSE_SCROLL, {.scroll = {type, threshold}}})
 
 // Gamepad buttons input //
 
@@ -280,15 +281,15 @@ typedef struct {
 
 // Gamepad triggers input //
 
-#define MAP_GAMEPAD_TRIGGER(trigger)                   ((InputMap){METHOD_GAMEPAD_TRIGGER, {.axis = {trigger, 0}}})
-#define MAP_GAMEPAD_TRIGGER_NORM(trigger)              ((InputMap){METHOD_GAMEPAD_TRIGGER_NORM, {.axis = {trigger, 0}}})
-#define MAP_GAMEPAD_TRIGGER_T(trigger, threshold)      ((InputMap){METHOD_GAMEPAD_TRIGGER, {.axis = {trigger, ftof16(threshold)}}})
-#define MAP_GAMEPAD_TRIGGER_NORM_T(trigger, threshold) ((InputMap){METHOD_GAMEPAD_TRIGGER_NORM, {.axis = {trigger, ftof16(threshold)}}})
+#define MAP_GAMEPAD_TRIGGER(trigger)                           ((InputMap){METHOD_GAMEPAD_TRIGGER, {.axis = {trigger, 0}}})
+#define MAP_GAMEPAD_TRIGGER_NORM(trigger)                      ((InputMap){METHOD_GAMEPAD_TRIGGER_NORM, {.axis = {trigger, 0}}})
+#define MAP_GAMEPAD_TRIGGER_THRESHOLD(trigger, threshold)      ((InputMap){METHOD_GAMEPAD_TRIGGER, {.axis = {trigger, ftof16(threshold)}}})
+#define MAP_GAMEPAD_TRIGGER_NORM_THRESHOLD(trigger, threshold) ((InputMap){METHOD_GAMEPAD_TRIGGER_NORM, {.axis = {trigger, ftof16(threshold)}}})
 
 // Gamepad joysticks input //
 
-#define MAP_GAMEPAD_JOYSTICK(joystick)              ((InputMap){METHOD_GAMEPAD_JOYSTICK, {.axis = {joystick, 0}}})
-#define MAP_GAMEPAD_JOYSTICK_T(joystick, threshold) ((InputMap){METHOD_GAMEPAD_JOYSTICK, {.axis = {joystick, ftof16(threshold)}}})
+#define MAP_GAMEPAD_JOYSTICK(joystick,range)                       ((InputMap){METHOD_GAMEPAD_JOYSTICK, {.axis = {joystick, range, 0}}})
+#define MAP_GAMEPAD_JOYSTICK_THRESHOLD(joystick, threshold, range) ((InputMap){METHOD_GAMEPAD_JOYSTICK, {.axis = {joystick, range, ftof16(threshold)}}})
 
 // Representation of an input mapping result
 typedef struct {
