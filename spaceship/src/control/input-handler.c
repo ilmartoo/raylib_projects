@@ -120,24 +120,27 @@ InputResult InputHandlerGetValue(InputDeviceID device, const InputMap mappings[]
 
         // Gamepad Trigger - float
         case METHOD_GAMEPAD_TRIGGER: {
-            f32 value = GetGamepadAxisMovement(device, map.data.axis.type);
-            return (value + 1) >= f16tof(map.data.axis.threshold) ? (InputResult){.float_v = value, .bool_v = !FloatEquals(-1, value)}
-                                                                  : (InputResult){.float_v = 0, .bool_v = false};
+            f32 value = GetGamepadAxisMovement(device, map.data.trigger.type);
+            return (value + 1) >= f16tof(map.data.trigger.threshold) ? (InputResult){.float_v = value, .bool_v = !FloatEquals(-1, value)}
+                                                                     : (InputResult){.float_v = 0, .bool_v = false};
         }
 
         // Gamepad Trigger (normalized) - float - from `-1..1` to `0..1`
         case METHOD_GAMEPAD_TRIGGER_NORM: {
-            f32 value = (GetGamepadAxisMovement(device, map.data.axis.type) + 1.0f) * 0.5f;
-            return value >= f16tof(map.data.axis.threshold) ? (InputResult){.float_v = value, .bool_v = !FloatEquals(0, value)}
-                                                            : (InputResult){.float_v = 0, .bool_v = false};
+            f32 value = (GetGamepadAxisMovement(device, map.data.trigger.type) + 1.0f) * 0.5f;
+            return value >= f16tof(map.data.trigger.threshold) ? (InputResult){.float_v = value, .bool_v = !FloatEquals(0, value)}
+                                                               : (InputResult){.float_v = 0, .bool_v = false};
         }
 
         // Gamepad Joystick - float
         case METHOD_GAMEPAD_JOYSTICK: {
-            f32 value = GetGamepadAxisMovement(device, map.data.axis.type);
-            return fabsf(value) >= f16tof(map.data.axis.threshold) ? (InputResult){.float_v = value, .bool_v = !FloatEquals(0, value)}
-                                                                   : (InputResult){.float_v = 0, .bool_v = false};
+            f32 value = GetGamepadAxisMovement(device, map.data.joystick.type);
+            return ((map.data.joystick.range == AXIS_RANGE_POSITIVE && value <= 0) ||
+                    (map.data.joystick.range == AXIS_RANGE_NEGATIVE && value >= 0) || (fabsf(value) < f16tof(map.data.joystick.threshold)))
+                       ? (InputResult){.float_v = 0, .bool_v = false}
+                       : (InputResult){.float_v = value, .bool_v = !FloatEquals(0, value)};
         }
+
         // No input method - false
         default: return (InputResult){.bool_v = false, .float_v = 0};
     }
