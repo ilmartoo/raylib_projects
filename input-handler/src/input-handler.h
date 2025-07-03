@@ -247,49 +247,49 @@ typedef struct {
 
 // No input //
 
-#define MAP_NONE ((InputMap)(METHOD_NONE, 0))
+#define MAP_NONE ((InputMap){METHOD_NONE, {0}})
 
 // Keyboard keys input //
 
-#define MAP_KEYBOARD_KEY_PRESSED(key)  ((InputMap){METHOD_KEYBOARD_KEY_PRESSED, {key}})
-#define MAP_KEYBOARD_KEY_RELEASED(key) ((InputMap){METHOD_KEYBOARD_KEY_RELEASED, {key}})
-#define MAP_KEYBOARD_KEY_DOWN(key)     ((InputMap){METHOD_KEYBOARD_KEY_DOWN, {key}})
-#define MAP_KEYBOARD_KEY_UP(key)       ((InputMap){METHOD_KEYBOARD_KEY_UP, {key}})
+#define MAP_KEYBOARD_KEY_PRESSED(_key)  ((InputMap){METHOD_KEYBOARD_KEY_PRESSED, {_key}})
+#define MAP_KEYBOARD_KEY_RELEASED(_key) ((InputMap){METHOD_KEYBOARD_KEY_RELEASED, {_key}})
+#define MAP_KEYBOARD_KEY_DOWN(_key)     ((InputMap){METHOD_KEYBOARD_KEY_DOWN, {_key}})
+#define MAP_KEYBOARD_KEY_UP(_key)       ((InputMap){METHOD_KEYBOARD_KEY_UP, {_key}})
 
 // Mouse buttons input //
 
-#define MAP_MOUSE_BUTTON_PRESSED(button)  ((InputMap){METHOD_MOUSE_BUTTON_PRESSED, {button}})
-#define MAP_MOUSE_BUTTON_RELEASED(button) ((InputMap){METHOD_MOUSE_BUTTON_RELEASED, {button}})
-#define MAP_MOUSE_BUTTON_DOWN(button)     ((InputMap){METHOD_MOUSE_BUTTON_DOWN, {button}})
-#define MAP_MOUSE_BUTTON_UP(button)       ((InputMap){METHOD_MOUSE_BUTTON_UP, {button}})
+#define MAP_MOUSE_BUTTON_PRESSED(_button)  ((InputMap){METHOD_MOUSE_BUTTON_PRESSED, {_button}})
+#define MAP_MOUSE_BUTTON_RELEASED(_button) ((InputMap){METHOD_MOUSE_BUTTON_RELEASED, {_button}})
+#define MAP_MOUSE_BUTTON_DOWN(_button)     ((InputMap){METHOD_MOUSE_BUTTON_DOWN, {_button}})
+#define MAP_MOUSE_BUTTON_UP(_button)       ((InputMap){METHOD_MOUSE_BUTTON_UP, {_button}})
 
 // Mouse movements input //
 
-#define MAP_MOUSE_POSITION(axis)                      ((InputMap){METHOD_MOUSE_POSITION, {.movement = {axis, 0}}})
-#define MAP_MOUSE_MOVEMENT(axis)                      ((InputMap){METHOD_MOUSE_MOVEMENT, {.movement = {axis, 0}}})
-#define MAP_MOUSE_SCROLL(type)                        ((InputMap){METHOD_MOUSE_SCROLL, {.scroll = {type, 0}}})
-#define MAP_MOUSE_POSITION_THRESHOLD(axis, threshold) ((InputMap){METHOD_MOUSE_POSITION, {.movement = {axis, threshold}}})
-#define MAP_MOUSE_MOVEMENT_THRESHOLD(axis, threshold) ((InputMap){METHOD_MOUSE_MOVEMENT, {.movement = {axis, threshold}}})
-#define MAP_MOUSE_SCROLL_THRESHOLD(type, threshold)   ((InputMap){METHOD_MOUSE_SCROLL, {.scroll = {type, threshold}}})
+#define MAP_MOUSE_POSITION(_axis)                      ((InputMap){METHOD_MOUSE_POSITION, {.movement = {_axis, 0}}})
+#define MAP_MOUSE_MOVEMENT(_axis)                      ((InputMap){METHOD_MOUSE_MOVEMENT, {.movement = {_axis, 0}}})
+#define MAP_MOUSE_SCROLL(_type)                        ((InputMap){METHOD_MOUSE_SCROLL, {.scroll = {_type, 0}}})
+#define MAP_MOUSE_POSITION_THRESHOLD(_axis, threshold) ((InputMap){METHOD_MOUSE_POSITION, {.movement = {_axis, threshold}}})
+#define MAP_MOUSE_MOVEMENT_THRESHOLD(_axis, threshold) ((InputMap){METHOD_MOUSE_MOVEMENT, {.movement = {_axis, threshold}}})
+#define MAP_MOUSE_SCROLL_THRESHOLD(_type, threshold)   ((InputMap){METHOD_MOUSE_SCROLL, {.scroll = {_type, threshold}}})
 
 // Gamepad buttons input //
 
-#define MAP_GAMEPAD_BUTTON_PRESSED(button)  ((InputMap){METHOD_GAMEPAD_BUTTON_PRESSED, {button}})
-#define MAP_GAMEPAD_BUTTON_RELEASED(button) ((InputMap){METHOD_GAMEPAD_BUTTON_RELEASED, {button}})
-#define MAP_GAMEPAD_BUTTON_DOWN(button)     ((InputMap){METHOD_GAMEPAD_BUTTON_DOWN, {button}})
-#define MAP_GAMEPAD_BUTTON_UP(button)       ((InputMap){METHOD_GAMEPAD_BUTTON_UP, {button}})
+#define MAP_GAMEPAD_BUTTON_PRESSED(_button)  ((InputMap){METHOD_GAMEPAD_BUTTON_PRESSED, {_button}})
+#define MAP_GAMEPAD_BUTTON_RELEASED(_button) ((InputMap){METHOD_GAMEPAD_BUTTON_RELEASED, {_button}})
+#define MAP_GAMEPAD_BUTTON_DOWN(_button)     ((InputMap){METHOD_GAMEPAD_BUTTON_DOWN, {_button}})
+#define MAP_GAMEPAD_BUTTON_UP(_button)       ((InputMap){METHOD_GAMEPAD_BUTTON_UP, {_button}})
 
 // Gamepad triggers input //
 
-#define MAP_GAMEPAD_TRIGGER(trigger)                           ((InputMap){METHOD_GAMEPAD_TRIGGER, {.axis = {trigger, 0}}})
-#define MAP_GAMEPAD_TRIGGER_NORM(trigger)                      ((InputMap){METHOD_GAMEPAD_TRIGGER_NORM, {.axis = {trigger, 0}}})
-#define MAP_GAMEPAD_TRIGGER_THRESHOLD(trigger, threshold)      ((InputMap){METHOD_GAMEPAD_TRIGGER, {.axis = {trigger, ftof16(threshold)}}})
-#define MAP_GAMEPAD_TRIGGER_NORM_THRESHOLD(trigger, threshold) ((InputMap){METHOD_GAMEPAD_TRIGGER_NORM, {.axis = {trigger, ftof16(threshold)}}})
+#define MAP_GAMEPAD_TRIGGER(_trigger)                           ((InputMap){METHOD_GAMEPAD_TRIGGER, {.trigger = {_trigger, 0}}})
+#define MAP_GAMEPAD_TRIGGER_NORM(_trigger)                      ((InputMap){METHOD_GAMEPAD_TRIGGER_NORM, {.trigger = {_trigger, 0}}})
+#define MAP_GAMEPAD_TRIGGER_THRESHOLD(_trigger, threshold)      ((InputMap){METHOD_GAMEPAD_TRIGGER, {.trigger = {_trigger, ftof16(threshold)}}})
+#define MAP_GAMEPAD_TRIGGER_NORM_THRESHOLD(_trigger, threshold) ((InputMap){METHOD_GAMEPAD_TRIGGER_NORM, {.trigger = {_trigger, ftof16(threshold)}}})
 
 // Gamepad joysticks input //
 
-#define MAP_GAMEPAD_JOYSTICK(joystick,range)                       ((InputMap){METHOD_GAMEPAD_JOYSTICK, {.axis = {joystick, range, 0}}})
-#define MAP_GAMEPAD_JOYSTICK_THRESHOLD(joystick, threshold, range) ((InputMap){METHOD_GAMEPAD_JOYSTICK, {.axis = {joystick, range, ftof16(threshold)}}})
+#define MAP_GAMEPAD_JOYSTICK(_joystick, range)                      ((InputMap){METHOD_GAMEPAD_JOYSTICK, {.joystick = {_joystick, range, 0}}})
+#define MAP_GAMEPAD_JOYSTICK_THRESHOLD(_joystick, threshold, range) ((InputMap){METHOD_GAMEPAD_JOYSTICK, {.joystick = {_joystick, range, ftof16(threshold)}}})
 
 // Representation of an input mapping result
 typedef struct {
