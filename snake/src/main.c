@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <time.h>
 
 #include "input-handler.h"
 #include "rayconfig.h"
@@ -6,7 +7,33 @@
 #include "raymath.h"
 #include "types.h"
 
-// Fruit //
+// Utils //
+
+typedef struct {
+    union {
+        u8 v[2];
+        struct {
+            u8 x;
+            u8 y;
+        };
+    };
+} U8Pair;
+
+typedef struct {
+    union {
+        u16 v[2];
+        struct {
+            u16 x;
+            u16 y;
+        };
+    };
+} U16Pair;
+
+#define FRUIT_TYPES       38
+#define FRUIT_VARIATIONS  6
+#define FRUIT_SPRITE_SIZE 16
+
+#define SECONDS_FOR_NEW_FRUIT 5
 
 typedef enum {
     FRUIT_APPLE_RED = 0,
@@ -49,26 +76,11 @@ typedef enum {
     FRUIT_AVOCADO,
 } Fruit;
 
-#define FRUIT_TYPES       38
-#define FRUIT_VARIATIONS  6
-#define FRUIT_SPRITE_SIZE 16
-
-#define SECONDS_FOR_NEW_FRUIT 5
-
-void drawFruit(Texture2D spritesheet, u8 fruit, u8 variation, Vector2 pos) {
-    if (fruit >= FRUIT_TYPES) { fruit %= FRUIT_TYPES; }
-    if (variation >= FRUIT_VARIATIONS) { variation %= FRUIT_VARIATIONS; }
-    DrawTextureRec(spritesheet,
-                   (Rectangle){fruit * FRUIT_SPRITE_SIZE, variation * FRUIT_SPRITE_SIZE, FRUIT_SPRITE_SIZE, FRUIT_SPRITE_SIZE},
-                   pos,
-                   WHITE);
-}
-
-// Snake //
-
 #define SNAKE_TYPES       4
 #define SNAKE_DIRECTIONS  4
 #define SNAKE_SPRITE_SIZE 16
+
+#define SECONDS_FOR_SNAKE_MOVE (0.75f)
 
 typedef enum {
     SNAKE_HEAD = 0,
@@ -84,19 +96,6 @@ typedef enum {
     SNAKE_RIGHT,
 } SnakeDirection;
 
-void drawSnake(Texture2D spritesheet, u8 type, u8 direction, Vector2 pos) {
-    if (type >= SNAKE_TYPES) { type %= SNAKE_TYPES; }
-    if (direction >= SNAKE_DIRECTIONS) { direction %= SNAKE_DIRECTIONS; }
-    DrawTextureRec(spritesheet,
-                   (Rectangle){type * SNAKE_SPRITE_SIZE, direction * SNAKE_SPRITE_SIZE, SNAKE_SPRITE_SIZE, SNAKE_SPRITE_SIZE},
-                   pos,
-                   WHITE);
-}
-
-void snakeMove(SnakeDirection direction) { /*...*/ }
-
-// Board //
-
 #define BOARD_X    20
 #define BOARD_Y    15
 #define BOARD_SIZE (BOARD_X * BOARD_Y)
@@ -104,26 +103,6 @@ void snakeMove(SnakeDirection direction) { /*...*/ }
 #define CELL_SIZE    16
 #define CELL_COLOR_1 YELLOW
 #define CELL_COLOR_2 LIME
-
-typedef struct {
-    union {
-        u8 v[2];
-        struct {
-            u8 x;
-            u8 y;
-        };
-    };
-} U8Pair;
-
-typedef struct {
-    union {
-        u16 v[2];
-        struct {
-            u16 x;
-            u16 y;
-        };
-    };
-} U16Pair;
 
 typedef enum {
     CELL_TYPE_EMPTY,
@@ -138,7 +117,7 @@ typedef struct {
     union {
         struct {
             u8 type;
-            u8 direction;
+            u8 from;
         } snake;
         struct {
             u8 type;
@@ -153,17 +132,16 @@ typedef struct {
     Cell board[BOARD_SIZE];  // List of board cells
     U8Pair player;           // Player head location
 
-    double deltaToNewFruit;
+    float deltaToNewFruit;
+    float deltaToMovement;
+    u16 points;
+    bool gameOver;
 
     GreedyInputHandler inputHandler;
 
     Texture2D fruitSpritesheet;
     Texture2D snakeSpritesheet;
 } Data;
-
-void drawCell(Vector2 pos, bool alterColor) { DrawRectangle(pos.x, pos.y, CELL_SIZE, CELL_SIZE, alterColor ? CELL_COLOR_1 : CELL_COLOR_2); }
-
-// Inputs //
 
 typedef enum {
     INPUT_MOVE_DOWN = 0,
@@ -173,25 +151,108 @@ typedef enum {
     INPUT_TOGGLE_FULLSCREEN,
 } Inputs;
 
+#define INPUT_MAPPINGS_SIZE 5
+
+u8 random(u8 range) {
+    if (range <= 0) return 0;
+    u8 limit = (RAND_MAX / range) * range;
+    u32 r;
+    while ((r = rand()) >= limit) {}
+    return r % range;
+}
+
+// Fruit //
+
+U8Pair createFruit() { return (U8Pair){.x = random(FRUIT_TYPES), .y = random(FRUIT_VARIATIONS)}; }
+
+void drawFruit(Texture2D spritesheet, u8 fruit, u8 variation, Vector2 pos) {
+    if (fruit >= FRUIT_TYPES) { fruit %= FRUIT_TYPES; }
+    if (variation >= FRUIT_VARIATIONS) { variation %= FRUIT_VARIATIONS; }
+    DrawTextureRec(spritesheet,
+                   (Rectangle){fruit * FRUIT_SPRITE_SIZE, variation * FRUIT_SPRITE_SIZE, FRUIT_SPRITE_SIZE, FRUIT_SPRITE_SIZE},
+                   pos,
+                   WHITE);
+}
+
+// Snake //
+
+void drawSnake(Texture2D spritesheet, u8 type, u8 direction, Vector2 pos) {
+    if (type >= SNAKE_TYPES) { type %= SNAKE_TYPES; }
+    if (direction >= SNAKE_DIRECTIONS) { direction %= SNAKE_DIRECTIONS; }
+    DrawTextureRec(spritesheet,
+                   (Rectangle){type * SNAKE_SPRITE_SIZE, direction * SNAKE_SPRITE_SIZE, SNAKE_SPRITE_SIZE, SNAKE_SPRITE_SIZE},
+                   pos,
+                   WHITE);
+}
+
+void snakeMove(Data *data, SnakeDirection direction) {}
+
+// Board //
+
+Cell *boardCell(Data *data, u8 x, u8 y) { return &data->board[x + y * BOARD_X]; }
+
+void resetBoard(Data *data) {
+    for (usize i = 0; i < BOARD_SIZE; ++i) { data->board[i] = (Cell){0}; }
+    U8Pair pos = {.x = (BOARD_X / 2), .y = (BOARD_Y / 2)};
+    data->player = pos;
+
+    Cell *cell;
+
+    cell = boardCell(data, pos.x, pos.y - 1);
+    cell->type = CELL_TYPE_FRUIT;
+    U8Pair fruit = createFruit();
+    cell->fruit.type = fruit.x;
+    cell->fruit.variation = fruit.y;
+
+    cell = boardCell(data, pos.x, pos.y + 1);
+    cell->type = CELL_TYPE_SNAKE_START;
+    cell->snake.type = SNAKE_HEAD;
+    cell->snake.from = SNAKE_DOWN;
+
+    cell = boardCell(data, pos.x, pos.y + 2);
+    cell->type = CELL_TYPE_SNAKE_END;
+    cell->snake.type = SNAKE_TAIL;
+    cell->snake.from = SNAKE_DOWN;
+}
+
+void drawCell(Vector2 pos, bool alterColor) { DrawRectangle(pos.x, pos.y, CELL_SIZE, CELL_SIZE, alterColor ? CELL_COLOR_1 : CELL_COLOR_2); }
+
+// Logic //
+
 void manageInputs(Data *data) {
     InputResult *inputs = GreedyInputHandlerUpdate(&data->inputHandler).results;
 
     if (inputs[INPUT_TOGGLE_FULLSCREEN].bool_v) { ToggleFullscreen(); }
 
-    if (inputs[INPUT_MOVE_DOWN].bool_v) {
-        snakeMove(SNAKE_DOWN);
-    } else if (inputs[INPUT_MOVE_LEFT].bool_v) {
-        snakeMove(SNAKE_LEFT);
-    } else if (inputs[INPUT_MOVE_UP].bool_v) {
-        snakeMove(SNAKE_UP);
-    } else if (inputs[INPUT_MOVE_RIGHT].bool_v) {
-        snakeMove(SNAKE_RIGHT);
+    data->deltaToMovement -= GetFrameTime();
+    if (data->deltaToMovement <= 0) {
+        data->deltaToMovement = SECONDS_FOR_SNAKE_MOVE - data->deltaToMovement;
+        if (inputs[INPUT_MOVE_DOWN].bool_v) {
+            snakeMove(data, SNAKE_DOWN);
+        } else if (inputs[INPUT_MOVE_LEFT].bool_v) {
+            snakeMove(data, SNAKE_LEFT);
+        } else if (inputs[INPUT_MOVE_UP].bool_v) {
+            snakeMove(data, SNAKE_UP);
+        } else if (inputs[INPUT_MOVE_RIGHT].bool_v) {
+            snakeMove(data, SNAKE_RIGHT);
+        } else {
+            snakeMove(data, boardCell(data, data->player.x, data->player.y)->snake.from ^ 0b10);
+        }
     }
 }
 
-// Logic //
-
-void generateFruit(Data *data) {}
+void generateFruit(Data *data) {
+    data->deltaToNewFruit -= GetFrameTime();
+    if (data->deltaToNewFruit <= 0) {
+        data->deltaToNewFruit = SECONDS_FOR_NEW_FRUIT - data->deltaToNewFruit;
+        Cell *cell;
+        while ((cell = boardCell(data, random(BOARD_X), random(BOARD_Y)))->type != CELL_TYPE_EMPTY) {}
+        U8Pair fruit = createFruit();
+        cell->type = CELL_TYPE_FRUIT;
+        cell->fruit.type = fruit.x;
+        cell->fruit.variation = fruit.y;
+    }
+}
 
 void drawWorld(Data data) {
     BeginDrawing();
@@ -214,16 +275,13 @@ void drawWorld(Data data) {
             case CELL_TYPE_SNAKE_START:
             case CELL_TYPE_SNAKE_MIDDLE:
             case CELL_TYPE_SNAKE_END: {
-                drawSnake(data.snakeSpritesheet, cell.snake.type, cell.snake.direction, pos);
+                drawSnake(data.snakeSpritesheet, cell.snake.type, cell.snake.from, pos);
             } break;
             case CELL_TYPE_FRUIT: {
                 drawFruit(data.fruitSpritesheet, cell.fruit.type, cell.fruit.variation, pos);
             } break;
         }
     }
-
-    DrawRectangleLines(0, 0, BOARD_X * CELL_SIZE, BOARD_Y + CELL_SIZE, DARKGRAY);
-
     EndMode2D();
 
     DrawText("Fullscreen-compatible fixed camera", 10, 10, 20, WHITE);
@@ -236,24 +294,6 @@ void recalculateCamera(Data *data) {
 
     data->camera.zoom = fminf((float)sw / (BOARD_X * CELL_SIZE), (float)sh / (BOARD_Y * CELL_SIZE));
     data->camera.offset = (Vector2){sw / 2, sh / 2};
-}
-
-void resetBoard(Data *data) {
-    for (usize i = 0; i < BOARD_SIZE; ++i) { data->board[i] = (Cell){0}; }
-    U8Pair ppos = {.x = (BOARD_X / 2), .y = (BOARD_Y / 2 - 1)};
-    data->player = ppos;
-
-    Cell *cell = data->board;
-
-    cell += ppos.x + (ppos.y * BOARD_X);
-    cell->type = CELL_TYPE_SNAKE_START;
-    cell->snake.type = SNAKE_HEAD;
-    cell->snake.direction = SNAKE_DOWN;
-
-    cell += BOARD_X;
-    cell->type = CELL_TYPE_SNAKE_END;
-    cell->snake.type = SNAKE_TAIL;
-    cell->snake.direction = SNAKE_DOWN;
 }
 
 i32 main() {
@@ -271,15 +311,37 @@ i32 main() {
 
     data.deltaToNewFruit = SECONDS_FOR_NEW_FRUIT;
 
-    data.inputHandler = GreedyInputHandlerCreate(1);
-    GreedyInputHandlerMapSet(&data.inputHandler, INPUT_DEVICE_ID_KEYBOARD_AND_MOUSE, 0, MAP_KEYBOARD_KEY_PRESSED(KEY_F11));
+    data.inputHandler = GreedyInputHandlerCreate(INPUT_MAPPINGS_SIZE);
+    InputMap inputMaps[2][INPUT_MAPPINGS_SIZE] = {
+        {
+            MAP_KEYBOARD_KEY_DOWN(KEY_DOWN),
+            MAP_KEYBOARD_KEY_DOWN(KEY_LEFT),
+            MAP_KEYBOARD_KEY_DOWN(KEY_UP),
+            MAP_KEYBOARD_KEY_DOWN(KEY_RIGHT),
+            MAP_KEYBOARD_KEY_DOWN(KEY_F11),
+        },
+        {
+            MAP_GAMEPAD_JOYSTICK(GAMEPAD_JOYSTICK_LEFT_Y, AXIS_RANGE_NEGATIVE),
+            MAP_GAMEPAD_JOYSTICK(GAMEPAD_JOYSTICK_LEFT_X, AXIS_RANGE_POSITIVE),
+            MAP_GAMEPAD_JOYSTICK(GAMEPAD_JOYSTICK_LEFT_Y, AXIS_RANGE_POSITIVE),
+            MAP_GAMEPAD_JOYSTICK(GAMEPAD_JOYSTICK_LEFT_X, AXIS_RANGE_NEGATIVE),
+            MAP_NONE,
+        },
+    };
+    GreedyInputHandlerMappingsSet(&data.inputHandler, inputMaps[0], inputMaps[1]);
 
     data.fruitSpritesheet = LoadTexture("assets/fruits.png");
     data.snakeSpritesheet = LoadTexture("assets/snake.png");
 
+    srand(time(NULL));
+
     while (!WindowShouldClose()) {
         recalculateCamera(&data);
-
+        if (!data.gameOver) {
+            generateFruit(&data);
+            manageInputs(&data);
+        } else {
+        }
         drawWorld(data);
     }
 
