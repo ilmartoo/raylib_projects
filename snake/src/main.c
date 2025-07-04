@@ -96,6 +96,8 @@ typedef enum {
     SNAKE_RIGHT,
 } SnakeDirection;
 
+#define InvertDirection(direction) (direction ^ 0b10)
+
 #define BOARD_X    20
 #define BOARD_Y    15
 #define BOARD_SIZE (BOARD_X * BOARD_Y)
@@ -185,7 +187,50 @@ void drawSnake(Texture2D spritesheet, u8 type, u8 direction, Vector2 pos) {
                    WHITE);
 }
 
-void snakeMove(Data *data, SnakeDirection direction) {}
+U8Pair movePos(U8Pair pos, SnakeDirection direction) {
+    switch (direction) {
+        case SNAKE_UP: return (U8Pair){.x = pos.x, .y = (pos.y > 0 ? pos.y - 1 : BOARD_Y - 1)};
+        case SNAKE_DOWN: return (U8Pair){.x = pos.x, .y = (pos.y < BOARD_Y - 1 ? pos.y + 1 : 0)};
+        case SNAKE_LEFT: return (U8Pair){.x = (pos.x > 0 ? pos.x - 1 : BOARD_X - 1), .y = pos.y};
+        case SNAKE_RIGHT: return (U8Pair){.x = (pos.x < BOARD_X - 1 ? pos.x + 1 : 0), .y = pos.y};
+    }
+}
+
+void snakeMove(Data *data, SnakeDirection direction) {
+    U8Pair pos = movePos(data->player, direction);
+
+    Cell *cell = boardCell(data, pos.x, pos.y);
+
+    switch (cell->type) {
+        case CELL_TYPE_SNAKE_START:
+        case CELL_TYPE_SNAKE_MIDDLE:
+        case CELL_TYPE_SNAKE_END: data->gameOver = true; return;  // End game if crashed with own body
+
+        case CELL_TYPE_FRUIT: data->points += 1; break;  // Fruit eated + points
+    }
+
+    // Straight line
+    if (InvertDirection(direction) == cell->snake.from) {
+        Cell *oldHead = boardCell(data, data->player.x, data->player.y);
+        *cell = *oldHead;
+        oldHead->type = CELL_TYPE_SNAKE_MIDDLE;
+        oldHead->snake.type = SNAKE_BODY;
+    }
+    // A turn
+    else {
+        Cell *oldHead = boardCell(data, data->player.x, data->player.y);
+        *cell = *oldHead;
+        oldHead->type = CELL_TYPE_SNAKE_MIDDLE;
+        oldHead->snake.type = SNAKE_BODY;
+    }
+    data->player = pos;
+
+    // transform player location into dynamic array of positions
+
+    while (cell->type != CELL_TYPE_SNAKE_END) { *nextCell = *cell; }
+
+    *cell = (Cell){CELL_TYPE_EMPTY, {0}};  // Set empty the last cell
+}
 
 // Board //
 
@@ -227,16 +272,20 @@ void manageInputs(Data *data) {
     data->deltaToMovement -= GetFrameTime();
     if (data->deltaToMovement <= 0) {
         data->deltaToMovement = SECONDS_FOR_SNAKE_MOVE - data->deltaToMovement;
-        if (inputs[INPUT_MOVE_DOWN].bool_v) {
+
+        SnakeDirection fromDirection = boardCell(data, data->player.x, data->player.y)->snake.from;
+
+        // Check input and do not allow to go backwards
+        if (inputs[INPUT_MOVE_DOWN].bool_v && fromDirection != SNAKE_DOWN) {
             snakeMove(data, SNAKE_DOWN);
-        } else if (inputs[INPUT_MOVE_LEFT].bool_v) {
+        } else if (inputs[INPUT_MOVE_LEFT].bool_v && fromDirection != SNAKE_LEFT) {
             snakeMove(data, SNAKE_LEFT);
-        } else if (inputs[INPUT_MOVE_UP].bool_v) {
+        } else if (inputs[INPUT_MOVE_UP].bool_v && fromDirection != SNAKE_UP) {
             snakeMove(data, SNAKE_UP);
-        } else if (inputs[INPUT_MOVE_RIGHT].bool_v) {
+        } else if (inputs[INPUT_MOVE_RIGHT].bool_v && fromDirection != SNAKE_RIGHT) {
             snakeMove(data, SNAKE_RIGHT);
         } else {
-            snakeMove(data, boardCell(data, data->player.x, data->player.y)->snake.from ^ 0b10);
+            snakeMove(data, InvertDirection(boardCell(data, data->player.x, data->player.y)->snake.from));
         }
     }
 }
