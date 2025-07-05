@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "dynamic-array.h"
 #include "input-handler.h"
 #include "rayconfig.h"
 #include "raylib.h"
@@ -17,17 +18,7 @@ typedef struct {
             u8 y;
         };
     };
-} U8Pair;
-
-typedef struct {
-    union {
-        u16 v[2];
-        struct {
-            u16 x;
-            u16 y;
-        };
-    };
-} U16Pair;
+} Pair;
 
 #define FRUIT_TYPES       38
 #define FRUIT_VARIATIONS  6
@@ -90,13 +81,14 @@ typedef enum {
 } SnakePart;
 
 typedef enum {
-    SNAKE_DOWN = 0,
-    SNAKE_LEFT,
-    SNAKE_UP,
+    SNAKE_UP = 0,
     SNAKE_RIGHT,
+    SNAKE_DOWN,
+    SNAKE_LEFT,
 } SnakeDirection;
 
-#define InvertDirection(direction) (direction ^ 0b10)
+#define AreDirsDiffAxis(dir1, dir2) ((dir1 ^ dir2) & 0b1)
+#define AreDirsSameAxis(dir1, dir2) (!AreDirsDiffAxis(dir1, dir2))
 
 #define BOARD_X    20
 #define BOARD_Y    15
@@ -108,9 +100,7 @@ typedef enum {
 
 typedef enum {
     CELL_TYPE_EMPTY,
-    CELL_TYPE_SNAKE_START,
-    CELL_TYPE_SNAKE_MIDDLE,
-    CELL_TYPE_SNAKE_END,
+    CELL_TYPE_SNAKE,
     CELL_TYPE_FRUIT,
 } CellType;
 
@@ -119,7 +109,7 @@ typedef struct {
     union {
         struct {
             u8 type;
-            u8 from;
+            u8 direction;
         } snake;
         struct {
             u8 type;
@@ -128,11 +118,13 @@ typedef struct {
     };
 } Cell;
 
+DYNAMIC_ARRAY_DEFINITION(Pair, DynamicPairArray)
+
 typedef struct {
     Camera2D camera;
 
-    Cell board[BOARD_SIZE];  // List of board cells
-    U8Pair player;           // Player head location
+    Cell board[BOARD_SIZE];   // List of board cells
+    DynamicPairArray player;  // Player locations
 
     float deltaToNewFruit;
     float deltaToMovement;
@@ -165,7 +157,7 @@ u8 random(u8 range) {
 
 // Fruit //
 
-U8Pair createFruit() { return (U8Pair){.x = random(FRUIT_TYPES), .y = random(FRUIT_VARIATIONS)}; }
+Pair createFruit() { return (Pair){.x = random(FRUIT_TYPES), .y = random(FRUIT_VARIATIONS)}; }
 
 void drawFruit(Texture2D spritesheet, u8 fruit, u8 variation, Vector2 pos) {
     if (fruit >= FRUIT_TYPES) { fruit %= FRUIT_TYPES; }
@@ -187,40 +179,54 @@ void drawSnake(Texture2D spritesheet, u8 type, u8 direction, Vector2 pos) {
                    WHITE);
 }
 
-U8Pair movePos(U8Pair pos, SnakeDirection direction) {
+Pair movePos(Pair pos, SnakeDirection direction) {
     switch (direction) {
-        case SNAKE_UP: return (U8Pair){.x = pos.x, .y = (pos.y > 0 ? pos.y - 1 : BOARD_Y - 1)};
-        case SNAKE_DOWN: return (U8Pair){.x = pos.x, .y = (pos.y < BOARD_Y - 1 ? pos.y + 1 : 0)};
-        case SNAKE_LEFT: return (U8Pair){.x = (pos.x > 0 ? pos.x - 1 : BOARD_X - 1), .y = pos.y};
-        case SNAKE_RIGHT: return (U8Pair){.x = (pos.x < BOARD_X - 1 ? pos.x + 1 : 0), .y = pos.y};
+        case SNAKE_UP: return (Pair){.x = pos.x, .y = (pos.y > 0 ? pos.y - 1 : BOARD_Y - 1)};
+        case SNAKE_DOWN: return (Pair){.x = pos.x, .y = (pos.y < BOARD_Y - 1 ? pos.y + 1 : 0)};
+        case SNAKE_LEFT: return (Pair){.x = (pos.x > 0 ? pos.x - 1 : BOARD_X - 1), .y = pos.y};
+        case SNAKE_RIGHT: return (Pair){.x = (pos.x < BOARD_X - 1 ? pos.x + 1 : 0), .y = pos.y};
     }
 }
 
 void snakeMove(Data *data, SnakeDirection direction) {
-    U8Pair pos = movePos(data->player, direction);
+    Pair playerPos = data->player.elements[0];
+    Pair pos = movePos(playerPos, direction);
 
     Cell *cell = boardCell(data, pos.x, pos.y);
 
     switch (cell->type) {
-        case CELL_TYPE_SNAKE_START:
-        case CELL_TYPE_SNAKE_MIDDLE:
-        case CELL_TYPE_SNAKE_END: data->gameOver = true; return;  // End game if crashed with own body
+        // End game if crashed with own body
+        case CELL_TYPE_SNAKE: {
+            data->gameOver = true;
+            return;
+        }
 
-        case CELL_TYPE_FRUIT: data->points += 1; break;  // Fruit eated + points
+        // Fruit eated + points
+        case CELL_TYPE_FRUIT: {
+            data->points += 1;
+            boardCell(data, playerPos.x, playerPos.y)->snake.type = SNAKE_BODY;
+            *boardCell(data, pos.x, pos.y) = (Cell){.type = CELL_TYPE_SNAKE, .snake = {.type = SNAKE_HEAD, .direction = direction}};
+            DynamicPairArrayShift(&data->player, pos);
+            return;
+        }
+
+        // Basic movement
+        default: {
+        }
     }
 
     // Straight line
     if (InvertDirection(direction) == cell->snake.from) {
         Cell *oldHead = boardCell(data, data->player.x, data->player.y);
         *cell = *oldHead;
-        oldHead->type = CELL_TYPE_SNAKE_MIDDLE;
+        oldHead->type = CELL_TYPE_SNAKE;
         oldHead->snake.type = SNAKE_BODY;
     }
     // A turn
     else {
         Cell *oldHead = boardCell(data, data->player.x, data->player.y);
         *cell = *oldHead;
-        oldHead->type = CELL_TYPE_SNAKE_MIDDLE;
+        oldHead->type = CELL_TYPE_SNAKE;
         oldHead->snake.type = SNAKE_BODY;
     }
     data->player = pos;
@@ -237,32 +243,49 @@ void snakeMove(Data *data, SnakeDirection direction) {
 Cell *boardCell(Data *data, u8 x, u8 y) { return &data->board[x + y * BOARD_X]; }
 
 void resetBoard(Data *data) {
+    DynamicPairArrayClear(&data->player);
+
     for (usize i = 0; i < BOARD_SIZE; ++i) { data->board[i] = (Cell){0}; }
-    U8Pair pos = {.x = (BOARD_X / 2), .y = (BOARD_Y / 2)};
-    data->player = pos;
+    Pair pos = {.x = (BOARD_X >> 1), .y = (BOARD_Y >> 1)};
+
+    // Initialize array of player positions
 
     Cell *cell;
 
-    cell = boardCell(data, pos.x, pos.y - 1);
+    pos.y -= 1;
+
+    cell = boardCell(data, pos.x, pos.y);
     cell->type = CELL_TYPE_FRUIT;
-    U8Pair fruit = createFruit();
+    Pair fruit = createFruit();
     cell->fruit.type = fruit.x;
     cell->fruit.variation = fruit.y;
 
-    cell = boardCell(data, pos.x, pos.y + 1);
+    pos.y += 2;
+
+    DynamicPairArrayShift(&data->player, pos);
+
+    cell = boardCell(data, pos.x, pos.y);
     cell->type = CELL_TYPE_SNAKE_START;
     cell->snake.type = SNAKE_HEAD;
-    cell->snake.from = SNAKE_DOWN;
+    cell->snake.direction = SNAKE_UP;
 
-    cell = boardCell(data, pos.x, pos.y + 2);
+    pos.y += 1;
+
+    DynamicPairArrayShift(&data->player, pos);
+
+    cell = boardCell(data, pos.x, pos.y);
     cell->type = CELL_TYPE_SNAKE_END;
     cell->snake.type = SNAKE_TAIL;
-    cell->snake.from = SNAKE_DOWN;
+    cell->snake.direction = SNAKE_UP;
 }
 
 void drawCell(Vector2 pos, bool alterColor) { DrawRectangle(pos.x, pos.y, CELL_SIZE, CELL_SIZE, alterColor ? CELL_COLOR_1 : CELL_COLOR_2); }
 
 // Logic //
+
+#define SCREEN_PADDING 10
+#define WORLD_SIZE_X   ((BOARD_X * CELL_SIZE) + (SCREEN_PADDING << 1))
+#define WORLD_SIZE_Y   ((BOARD_Y * CELL_SIZE) + (SCREEN_PADDING << 1))
 
 void manageInputs(Data *data) {
     InputResult *inputs = GreedyInputHandlerUpdate(&data->inputHandler).results;
@@ -296,7 +319,7 @@ void generateFruit(Data *data) {
         data->deltaToNewFruit = SECONDS_FOR_NEW_FRUIT - data->deltaToNewFruit;
         Cell *cell;
         while ((cell = boardCell(data, random(BOARD_X), random(BOARD_Y)))->type != CELL_TYPE_EMPTY) {}
-        U8Pair fruit = createFruit();
+        Pair fruit = createFruit();
         cell->type = CELL_TYPE_FRUIT;
         cell->fruit.type = fruit.x;
         cell->fruit.variation = fruit.y;
@@ -341,7 +364,7 @@ void recalculateCamera(Data *data) {
     u16 sw = GetScreenWidth();
     u16 sh = GetScreenHeight();
 
-    data->camera.zoom = fminf((float)sw / (BOARD_X * CELL_SIZE), (float)sh / (BOARD_Y * CELL_SIZE));
+    data->camera.zoom = fminf((float)sw / WORLD_SIZE_X, (float)sh / WORLD_SIZE_Y);
     data->camera.offset = (Vector2){sw / 2, sh / 2};
 }
 
@@ -353,8 +376,10 @@ i32 main() {
 
     Data data = {0};
 
-    data.camera.target = (Vector2){BOARD_X * CELL_SIZE * 0.5f, BOARD_Y * CELL_SIZE * 0.5f};
+    data.camera.target = (Vector2){(BOARD_X * CELL_SIZE) >> 1, (BOARD_Y * CELL_SIZE) >> 1};
     data.camera.rotation = 0;
+
+    DynamicPairArrayCreate(&data.player);
 
     resetBoard(&data);
 
