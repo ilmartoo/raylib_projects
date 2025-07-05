@@ -8,17 +8,20 @@
 
 #define __DYNAMIC_ARRAY_DEFINITION(element_type, struct_name) \
     typedef struct { element_type *elements; size_t length; size_t size; } struct_name; \
-    inline struct_name struct_name##CreateSized(size_t initial_size) { return { (element_type *)malloc(sizeof(element_type) * initial_size), 0, initial_size }; } \
+    inline struct_name struct_name##CreateSized(size_t initial_size) { return (struct_name){ (element_type *)malloc(sizeof(element_type) * initial_size), 0, initial_size }; } \
     inline struct_name struct_name##Create() { return struct_name##CreateSized(DYNAMIC_ARRAY_DEFAULT_SIZE); } \
     inline void struct_name##Delete(struct_name* array) { free(array->elements); } \
-    inline void struct_name##Push(struct_name* array, element_type element) { if (array->length == array->size) { array->size *= 2; array->elements = (element_type *)realloc(array->elements, array->size); } array->elements[array->length++] = element; } \
-    inline element_type struct_name##Pop(struct_name* array) { element_type element = array->elements[--array->length]; } \
     inline void struct_name##Add(struct_name* array, element_type element, size_t index) { if (index >= array->length) { return; } if (array->length == array->size) { array->size *= 2; array->elements = (element_type *)realloc(array->elements, array->size); } for (size_t i = index; i < array->length; ++i) { array->elements[i + 1] = array->elements[i]; } array->length++; array->elements[index] = element; } \
-    inline element_type struct_name##Remove(struct_name* array, size_t index) { if (index >= array->length) { return; } element_type element = array->elements[index]; for (size_t i = index; i < array->length; ++i) { array->elements[i] = array->elements[i + 1]; } array->length--; return element; }
+    inline element_type struct_name##Remove(struct_name* array, size_t index) { if (index >= array->length) { return; } element_type element = array->elements[index]; for (size_t i = index; i < array->length; ++i) { array->elements[i] = array->elements[i + 1]; } array->length--; return element; } \
+    inline void struct_name##Push(struct_name* array, element_type element) { struct_name##Add(array, element, array->length - 1); } \
+    inline element_type struct_name##Pop(struct_name* array) { return struct_name##Remove(array, array->length - 1); } \
+    inline void struct_name##Shift(struct_name* array, element_type element) { struct_name##Add(array, element, 0); } \
+    inline element_type struct_name##Unshift(struct_name* array) { return struct_name##Remove(array, 0); } \
+    inline void struct_name##Clear(struct_name* array) { array->length = 0; }
 
 /**
  * Abstract definition of a dynamic array in C.
- * To create an implementation, this macro must be called inside, and only inside, a header file, with the element type and the name of the dynamic array type.
+ * To create an implementation, this macro must be called with the element type and the name of the dynamic array type.
   * 
  * @param element_type The type for the array elements stored.
  * @param struct_name The name of the dynamic array struct type to be defined.
@@ -37,13 +40,19 @@
  * 
  * - `void <struct_name>Delete(<struct_name>* array)`: Deletes a dynamic array.
  * 
+ * - `void <struct_name>Add(<struct_name>* array, <elem_type> element, size_t index)`: Adds a new element at the specified position.
+ * 
+ * - `<elem_type> <struct_name>Remove(<struct_name>* array, size_t index)`: Removes the element at the specified position.
+ * 
  * - `void <struct_name>Push(<struct_name>* array, <elem_type> element)`: Appends a new element at the end of the array.
  * 
  * - `<elem_type> <struct_name>Pop(<struct_name>* array)`: Removes the last element of the array.
  * 
- * - `void <struct_name>Add(<struct_name>* array, <elem_type> element, size_t index)`: Adds a new element at the specified position.
+ * - `void <struct_name>Shift(<struct_name>* array, <elem_type> element)`: Adds a new element at the start of the array.
  * 
- * - `<elem_type> <struct_name>Remove(<struct_name>* array, size_t index)`: Removes the element at the specified position.
+ * - `<elem_type> <struct_name>Unshift(<struct_name>* array)`: Removes the first element of the array.
+ * 
+ * - `void <struct_name>Clear(<struct_name>* array)`: Removes all elements from the array.
  */
 #define DYNAMIC_ARRAY_DEFINITION(element_type, struct_name) __DYNAMIC_ARRAY_DEFINITION(element_type, struct_name)
 
@@ -55,6 +64,4 @@
  */
 #define for_dynamic_array(element_type, var, array) for (element_type* var = array->elements; var < array->elements + array->length; var++)
 
-DYNAMIC_ARRAY_DEFINITION(int, DynamicArrayInt)
-
-#endif // __DYNAMIC_ARRAY_H__
+#endif  // __DYNAMIC_ARRAY_H__
