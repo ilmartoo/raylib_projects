@@ -10,6 +10,8 @@
 
 // Utils //
 
+DYNAMIC_ARRAY_DEFINITION(u8, DynamicDirectionArray)
+
 typedef struct {
     union {
         u8 v[2];
@@ -87,8 +89,10 @@ typedef enum {
     SNAKE_LEFT,
 } SnakeDirection;
 
-#define AreDirsDiffAxis(dir1, dir2) ((dir1 ^ dir2) & 0b1)
-#define AreDirsSameAxis(dir1, dir2) (!AreDirsDiffAxis(dir1, dir2))
+#define InvertDirection(dir) (dir ^ 0b10)
+
+#define IsDirectionAxisY(dir) (dir & 0b1)
+#define IsDirectionAxisX(dir) (!IsDirectionAxisY(dir))
 
 #define BOARD_X    20
 #define BOARD_Y    15
@@ -118,13 +122,12 @@ typedef struct {
     };
 } Cell;
 
-DYNAMIC_ARRAY_DEFINITION(Pair, DynamicPairArray)
-
 typedef struct {
     Camera2D camera;
 
-    Cell board[BOARD_SIZE];   // List of board cells
-    DynamicPairArray player;  // Player locations
+    Cell board[BOARD_SIZE];  // List of board cells
+    Pair playerPos;
+    DynamicDirectionArray snake;  // Player locations
 
     float deltaToNewFruit;
     float deltaToMovement;
@@ -155,6 +158,8 @@ u8 random(u8 range) {
     return r % range;
 }
 
+Cell *getCell(Data *data, Pair pos) { return &data->board[pos.x + pos.y * BOARD_X]; }
+
 // Fruit //
 
 Pair createFruit() { return (Pair){.x = random(FRUIT_TYPES), .y = random(FRUIT_VARIATIONS)}; }
@@ -179,82 +184,91 @@ void drawSnake(Texture2D spritesheet, u8 type, u8 direction, Vector2 pos) {
                    WHITE);
 }
 
-Pair movePos(Pair pos, SnakeDirection direction) {
+Pair movePos(Pair pos, u8 direction) {
     switch (direction) {
         case SNAKE_UP: return (Pair){.x = pos.x, .y = (pos.y > 0 ? pos.y - 1 : BOARD_Y - 1)};
         case SNAKE_DOWN: return (Pair){.x = pos.x, .y = (pos.y < BOARD_Y - 1 ? pos.y + 1 : 0)};
         case SNAKE_LEFT: return (Pair){.x = (pos.x > 0 ? pos.x - 1 : BOARD_X - 1), .y = pos.y};
         case SNAKE_RIGHT: return (Pair){.x = (pos.x < BOARD_X - 1 ? pos.x + 1 : 0), .y = pos.y};
+        default: return pos;
+    }
+}
+
+Pair snakeDirection(SnakeDirection next, SnakeDirection current) {
+    bool verticalNext = IsDirectionAxisY(next);
+    bool verticalCurr = IsDirectionAxisY(current);
+
+    if (verticalNext ^ verticalCurr) {
+        bool isUp = (verticalNext && next == SNAKE_UP) || (verticalCurr && current == SNAKE_UP);
+        bool isRight = (!verticalNext && next == SNAKE_RIGHT) || (!verticalCurr && current == SNAKE_RIGHT);
+
+        return (Pair){.x = SNAKE_TURN, .y = isUp ? (isRight ? SNAKE_RIGHT : SNAKE_UP) : (isRight ? SNAKE_DOWN : SNAKE_LEFT)};
+    } else {
+        return (Pair){.x = SNAKE_BODY, .y = current};
     }
 }
 
 void snakeMove(Data *data, SnakeDirection direction) {
-    Pair playerPos = data->player.elements[0];
-    Pair pos = movePos(playerPos, direction);
-
-    Cell *cell = boardCell(data, pos.x, pos.y);
+    Pair newPlayerPos = movePos(data->playerPos, direction);
+    Cell *cell = getCell(data, newPlayerPos);
 
     switch (cell->type) {
         // End game if crashed with own body
         case CELL_TYPE_SNAKE: {
             data->gameOver = true;
-            return;
         }
 
         // Fruit eated + points
         case CELL_TYPE_FRUIT: {
             data->points += 1;
-            boardCell(data, playerPos.x, playerPos.y)->snake.type = SNAKE_BODY;
-            *boardCell(data, pos.x, pos.y) = (Cell){.type = CELL_TYPE_SNAKE, .snake = {.type = SNAKE_HEAD, .direction = direction}};
-            DynamicPairArrayShift(&data->player, pos);
-            return;
+
+            cell->type = CELL_TYPE_SNAKE;
+            cell->snake.type = SNAKE_HEAD;
+            cell->snake.direction = direction;
+
+            cell = getCell(data, data->playerPos);
+            Pair snake = snakeDirection(direction, cell->snake.direction);
+            cell->snake.type = snake.x;
+            cell->snake.direction = snake.y;
+
+            DynamicDirectionArrayShift(&data->snake, InvertDirection(direction));
         }
 
         // Basic movement
         default: {
+            cell->type = CELL_TYPE_SNAKE;
+            cell->snake.type = SNAKE_HEAD;
+            cell->snake.direction = direction;
+
+            Pair pos = data->playerPos;
+            Pair snake = snakeDirection(direction, cell->snake.direction);
+            cell->snake.type = snake.x;
+            cell->snake.direction = snake.y;
+
+            for (usize i = 1; i < data->snake.length - 1; ++i) { pos = movePos(pos, data->snake.elements[i]); }
+            getCell(data, pos)->snake.type = SNAKE_TAIL;
+            getCell(data, movePos(pos, data->snake.elements[data->snake.length - 1]))->type = CELL_TYPE_EMPTY;
+
+            DynamicDirectionArrayShift(&data->snake, InvertDirection(direction));
+            DynamicDirectionArrayPop(&data->snake);
         }
     }
 
-    // Straight line
-    if (InvertDirection(direction) == cell->snake.from) {
-        Cell *oldHead = boardCell(data, data->player.x, data->player.y);
-        *cell = *oldHead;
-        oldHead->type = CELL_TYPE_SNAKE;
-        oldHead->snake.type = SNAKE_BODY;
-    }
-    // A turn
-    else {
-        Cell *oldHead = boardCell(data, data->player.x, data->player.y);
-        *cell = *oldHead;
-        oldHead->type = CELL_TYPE_SNAKE;
-        oldHead->snake.type = SNAKE_BODY;
-    }
-    data->player = pos;
-
-    // transform player location into dynamic array of positions
-
-    while (cell->type != CELL_TYPE_SNAKE_END) { *nextCell = *cell; }
-
-    *cell = (Cell){CELL_TYPE_EMPTY, {0}};  // Set empty the last cell
+    data->playerPos = newPlayerPos;
 }
 
 // Board //
 
-Cell *boardCell(Data *data, u8 x, u8 y) { return &data->board[x + y * BOARD_X]; }
-
 void resetBoard(Data *data) {
-    DynamicPairArrayClear(&data->player);
+    DynamicDirectionArrayClear(&data->snake);
 
     for (usize i = 0; i < BOARD_SIZE; ++i) { data->board[i] = (Cell){0}; }
     Pair pos = {.x = (BOARD_X >> 1), .y = (BOARD_Y >> 1)};
-
-    // Initialize array of player positions
-
     Cell *cell;
 
     pos.y -= 1;
 
-    cell = boardCell(data, pos.x, pos.y);
+    cell = getCell(data, pos);
     cell->type = CELL_TYPE_FRUIT;
     Pair fruit = createFruit();
     cell->fruit.type = fruit.x;
@@ -262,19 +276,18 @@ void resetBoard(Data *data) {
 
     pos.y += 2;
 
-    DynamicPairArrayShift(&data->player, pos);
+    data->playerPos = pos;
 
-    cell = boardCell(data, pos.x, pos.y);
-    cell->type = CELL_TYPE_SNAKE_START;
+    cell = getCell(data, pos);
+    cell->type = CELL_TYPE_SNAKE;
     cell->snake.type = SNAKE_HEAD;
     cell->snake.direction = SNAKE_UP;
 
     pos.y += 1;
+    DynamicDirectionArrayShift(&data->snake, SNAKE_DOWN);
 
-    DynamicPairArrayShift(&data->player, pos);
-
-    cell = boardCell(data, pos.x, pos.y);
-    cell->type = CELL_TYPE_SNAKE_END;
+    cell = getCell(data, pos);
+    cell->type = CELL_TYPE_SNAKE;
     cell->snake.type = SNAKE_TAIL;
     cell->snake.direction = SNAKE_UP;
 }
@@ -296,19 +309,19 @@ void manageInputs(Data *data) {
     if (data->deltaToMovement <= 0) {
         data->deltaToMovement = SECONDS_FOR_SNAKE_MOVE - data->deltaToMovement;
 
-        SnakeDirection fromDirection = boardCell(data, data->player.x, data->player.y)->snake.from;
+        SnakeDirection nextSnakeDirection = data->snake.elements[0];
 
         // Check input and do not allow to go backwards
-        if (inputs[INPUT_MOVE_DOWN].bool_v && fromDirection != SNAKE_DOWN) {
+        if (inputs[INPUT_MOVE_DOWN].bool_v && nextSnakeDirection != SNAKE_DOWN) {
             snakeMove(data, SNAKE_DOWN);
-        } else if (inputs[INPUT_MOVE_LEFT].bool_v && fromDirection != SNAKE_LEFT) {
+        } else if (inputs[INPUT_MOVE_LEFT].bool_v && nextSnakeDirection != SNAKE_LEFT) {
             snakeMove(data, SNAKE_LEFT);
-        } else if (inputs[INPUT_MOVE_UP].bool_v && fromDirection != SNAKE_UP) {
+        } else if (inputs[INPUT_MOVE_UP].bool_v && nextSnakeDirection != SNAKE_UP) {
             snakeMove(data, SNAKE_UP);
-        } else if (inputs[INPUT_MOVE_RIGHT].bool_v && fromDirection != SNAKE_RIGHT) {
+        } else if (inputs[INPUT_MOVE_RIGHT].bool_v && nextSnakeDirection != SNAKE_RIGHT) {
             snakeMove(data, SNAKE_RIGHT);
         } else {
-            snakeMove(data, InvertDirection(boardCell(data, data->player.x, data->player.y)->snake.from));
+            snakeMove(data, InvertDirection(data->snake.elements[0]));
         }
     }
 }
@@ -318,7 +331,7 @@ void generateFruit(Data *data) {
     if (data->deltaToNewFruit <= 0) {
         data->deltaToNewFruit = SECONDS_FOR_NEW_FRUIT - data->deltaToNewFruit;
         Cell *cell;
-        while ((cell = boardCell(data, random(BOARD_X), random(BOARD_Y)))->type != CELL_TYPE_EMPTY) {}
+        while ((cell = getCell(data, (Pair){.x = random(BOARD_X), .y = random(BOARD_Y)}))->type != CELL_TYPE_EMPTY) {}
         Pair fruit = createFruit();
         cell->type = CELL_TYPE_FRUIT;
         cell->fruit.type = fruit.x;
@@ -344,10 +357,8 @@ void drawWorld(Data data) {
         drawCell(pos, (x + y) & 0b1);
 
         switch (cell.type) {
-            case CELL_TYPE_SNAKE_START:
-            case CELL_TYPE_SNAKE_MIDDLE:
-            case CELL_TYPE_SNAKE_END: {
-                drawSnake(data.snakeSpritesheet, cell.snake.type, cell.snake.from, pos);
+            case CELL_TYPE_SNAKE: {
+                drawSnake(data.snakeSpritesheet, cell.snake.type, cell.snake.direction, pos);
             } break;
             case CELL_TYPE_FRUIT: {
                 drawFruit(data.fruitSpritesheet, cell.fruit.type, cell.fruit.variation, pos);
@@ -379,7 +390,7 @@ i32 main() {
     data.camera.target = (Vector2){(BOARD_X * CELL_SIZE) >> 1, (BOARD_Y * CELL_SIZE) >> 1};
     data.camera.rotation = 0;
 
-    DynamicPairArrayCreate(&data.player);
+    DynamicDirectionArrayCreate(&data.snake);
 
     resetBoard(&data);
 
@@ -414,15 +425,15 @@ i32 main() {
         if (!data.gameOver) {
             generateFruit(&data);
             manageInputs(&data);
-        } else {
         }
         drawWorld(data);
+        if (data.gameOver) { DrawText("GAME OVER", GetScreenWidth() >> 1, GetScreenHeight() >> 1, 24, WHITE); }
     }
 
     GreedyInputHandlerDelete(&data.inputHandler);
 
+    DynamicDirectionArrayDelete(&data.snake);
+
     UnloadTexture(data.fruitSpritesheet);
     UnloadTexture(data.snakeSpritesheet);
-
-    return 0;
 }
