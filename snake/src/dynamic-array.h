@@ -8,16 +8,16 @@
 
 #define __DYNAMIC_ARRAY_DEFINITION(element_type, struct_name) \
     typedef struct { element_type *elements; size_t length; size_t size; } struct_name; \
-    inline struct_name struct_name##CreateSized(size_t initial_size) { return (struct_name){ (element_type *)malloc(sizeof(element_type) * initial_size), 0, initial_size }; } \
-    inline struct_name struct_name##Create() { return struct_name##CreateSized(DYNAMIC_ARRAY_DEFAULT_SIZE); } \
-    inline void struct_name##Delete(struct_name* array) { free(array->elements); } \
-    inline void struct_name##Add(struct_name* array, element_type element, size_t index) { if (index >= array->length) { return; } if (array->length == array->size) { array->size *= 2; array->elements = (element_type *)realloc(array->elements, array->size); } for (size_t i = index; i < array->length; ++i) { array->elements[i + 1] = array->elements[i]; } array->length++; array->elements[index] = element; } \
-    inline element_type struct_name##Remove(struct_name* array, size_t index) { if (index >= array->length) { return; } element_type element = array->elements[index]; for (size_t i = index; i < array->length; ++i) { array->elements[i] = array->elements[i + 1]; } array->length--; return element; } \
-    inline void struct_name##Push(struct_name* array, element_type element) { struct_name##Add(array, element, array->length - 1); } \
-    inline element_type struct_name##Pop(struct_name* array) { return struct_name##Remove(array, array->length - 1); } \
-    inline void struct_name##Shift(struct_name* array, element_type element) { struct_name##Add(array, element, 0); } \
-    inline element_type struct_name##Unshift(struct_name* array) { return struct_name##Remove(array, 0); } \
-    inline void struct_name##Clear(struct_name* array) { array->length = 0; }
+    static inline struct_name struct_name##CreateSized(size_t initial_size) { return (struct_name){ (element_type *)malloc(sizeof(element_type) * initial_size), 0, initial_size }; } \
+    static inline struct_name struct_name##Create() { return struct_name##CreateSized(DYNAMIC_ARRAY_DEFAULT_SIZE); } \
+    static inline void struct_name##Delete(struct_name* array) { free(array->elements); } \
+    static inline void struct_name##Add(struct_name* array, element_type element, size_t index) { if (index >= array->length) { index = array->length - 1; } if (array->length == array->size) { array->size *= 2; array->elements = (element_type *)realloc(array->elements, array->size); } for (size_t i = index; i < array->length; ++i) { array->elements[i + 1] = array->elements[i]; } array->length++; array->elements[index] = element; } \
+    static inline element_type struct_name##Remove(struct_name* array, size_t index) { if (index >= array->length) { index = array->length - 1; } element_type element = array->elements[index]; for (size_t i = index; i < array->length; ++i) { array->elements[i] = array->elements[i + 1]; } array->length--; return element; } \
+    static inline void struct_name##Push(struct_name* array, element_type element) { struct_name##Add(array, element, array->length - 1); } \
+    static inline element_type struct_name##Pop(struct_name* array) { return struct_name##Remove(array, array->length - 1); } \
+    static inline void struct_name##Shift(struct_name* array, element_type element) { struct_name##Add(array, element, 0); } \
+    static inline element_type struct_name##Unshift(struct_name* array) { return struct_name##Remove(array, 0); } \
+    static inline void struct_name##Clear(struct_name* array) { array->length = 0; }
 
 /**
  * Abstract definition of a dynamic array in C.
