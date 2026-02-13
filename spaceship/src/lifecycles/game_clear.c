@@ -1,11 +1,10 @@
-#include "game_debug.h"
-#include "game_lifecycle.h"
-#include "game_state.h"
-#include "raylib.h"
+#include "debug/game_debug.h"
+#include "lifecycles/game_lifecycle.h"
+#include "lifecycles/game_state.h"
+#include "raylib/raylib.h"
 
 // Game clear
-void GameClear(void)
-{
+void GameClear(void) {
     CloseWindow();
     GameStateCleanup();
 

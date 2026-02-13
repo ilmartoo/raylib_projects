@@ -4,12 +4,11 @@
 
 #ifdef DEBUG
 
-#include "arena.h"
-#include "raylib.h"
-#include "types.h"
+#include "types/arena.h"
+#include "raylib/raylib.h"
+#include "types/types.h"
 
-typedef struct DebugPanel
-{
+typedef struct DebugPanel {
     Arena arena;
     Color background_color;
     Font font;
@@ -34,31 +33,31 @@ typedef struct DebugPanel
  * @param entry_font Font for the entry text.
  * @returns A new debug panel.
  */
-DebugPanel *DebugPanelCreate(Color background_color, Font font);
+DebugPanel* DebugPanelCreate(Color background_color, Font font);
 /**
  * Deletes a debug panel.
  * @param panel Panel to delete.
  */
-void DebugPanelDelete(DebugPanel *panel);
+void DebugPanelDelete(DebugPanel* panel);
 
 /**
  * Appends a section to a debug panel.
  * @param panel Panel to use.
  * @param title Title of the section. Can be null.
  */
-void DebugPanelAddTitle(DebugPanel *panel, const char *title);
+void DebugPanelAddTitle(DebugPanel* panel, const char* title);
 /**
  * Appends an entry to the last section of a debug panel.
  * @param panel Panel to use.
  * @param text Text of the entry. Can be null.
  */
-void DebugPanelAddEntry(DebugPanel *panel, const char *text);
+void DebugPanelAddEntry(DebugPanel* panel, const char* text);
 
 /**
  * Cleans a debug panel for a new frame.
  * @param panel Panel to clean.
  */
-void DebugPanelClean(DebugPanel *panel);
+void DebugPanelClean(DebugPanel* panel);
 /**
  * Measures a debug panel.
  * @param panel Panel to measure.
@@ -72,6 +71,6 @@ Vector2 DebugPanelMeasures(DebugPanel panel);
  */
 void DebugPanelDraw(DebugPanel panel, Vector2 screen_position);
 
-#endif // DEBUG
+#endif  // DEBUG
 
-#endif // DEBUG_PANEL_H
+#endif  // DEBUG_PANEL_H

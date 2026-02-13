@@ -2,12 +2,12 @@
 #ifndef __STATE_H__
 #define __STATE_H__
 
-#include "config.h"
-#include "entities.h"
-#include "input-handler.h"
-#include "object_pool.h"
-#include "raylib.h"
-#include "types.h"
+#include "entities/entities.h"
+#include "input/input-handler.h"
+#include "types/object_pool.h"
+#include "raylib/config.h"
+#include "raylib/raylib.h"
+#include "types/types.h"
 
 // ----------------------------------------------------------------------------
 // ---- Game state ------------------------------------------------------------
@@ -77,7 +77,7 @@ Rectangle ProjectileTextureLocation(ProjectileType type);  // Proyectile texture
 f32 ScaleToDelta(f32 value);
 Vector2 Vector2ScaleToDelta(Vector2 v);
 
-extern GameState *state;  // Game state global variable
+extern GameState* state;  // Game state global variable
 
 /**
  * Custom for-each-loop to iterate over all the active players.

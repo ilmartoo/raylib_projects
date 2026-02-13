@@ -1,14 +1,15 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
-#include "dynamic-array.h"
-#include "input-handler.h"
-#include "rayconfig.h"
-#include "raylib.h"
-#include "raymath.h"
-#include "types.h"
+#include "types/dynamic-array.h"
+#include "input/input-handler.h"
+#include "raylib/config.h"
+#include "raylib/raylib.h"
+#include "raylib/raymath.h"
+#include "types/types.h"
 
-// Utils //
+#pragma region  // Config //
 
 DYNAMIC_ARRAY_DEFINITION(u8, DynamicDirectionArray)
 
@@ -94,8 +95,8 @@ typedef enum {
 #define IsDirectionAxisY(dir) (dir & 0b1)
 #define IsDirectionAxisX(dir) (!IsDirectionAxisY(dir))
 
-#define BOARD_X    20
-#define BOARD_Y    15
+#define BOARD_X    40
+#define BOARD_Y    30
 #define BOARD_SIZE (BOARD_X * BOARD_Y)
 
 #define CELL_SIZE    16
@@ -158,30 +159,28 @@ u8 random(u8 range) {
     return r % range;
 }
 
-Cell *getCell(Data *data, Pair pos) { return &data->board[pos.x + pos.y * BOARD_X]; }
+Cell* getCell(Data* data, Pair pos) { return &data->board[pos.x + pos.y * BOARD_X]; }
 
-// Fruit //
+#pragma endregion
+
+#pragma region  // Fruit //
 
 Pair createFruit() { return (Pair){.x = random(FRUIT_TYPES), .y = random(FRUIT_VARIATIONS)}; }
 
 void drawFruit(Texture2D spritesheet, u8 fruit, u8 variation, Vector2 pos) {
     if (fruit >= FRUIT_TYPES) { fruit %= FRUIT_TYPES; }
     if (variation >= FRUIT_VARIATIONS) { variation %= FRUIT_VARIATIONS; }
-    DrawTextureRec(spritesheet,
-                   (Rectangle){fruit * FRUIT_SPRITE_SIZE, variation * FRUIT_SPRITE_SIZE, FRUIT_SPRITE_SIZE, FRUIT_SPRITE_SIZE},
-                   pos,
-                   WHITE);
+    DrawTextureRec(spritesheet, (Rectangle){fruit * FRUIT_SPRITE_SIZE, variation * FRUIT_SPRITE_SIZE, FRUIT_SPRITE_SIZE, FRUIT_SPRITE_SIZE}, pos, WHITE);
 }
 
-// Snake //
+#pragma endregion
+
+#pragma region  // Snake //
 
 void drawSnake(Texture2D spritesheet, u8 type, u8 direction, Vector2 pos) {
     if (type >= SNAKE_TYPES) { type %= SNAKE_TYPES; }
     if (direction >= SNAKE_DIRECTIONS) { direction %= SNAKE_DIRECTIONS; }
-    DrawTextureRec(spritesheet,
-                   (Rectangle){type * SNAKE_SPRITE_SIZE, direction * SNAKE_SPRITE_SIZE, SNAKE_SPRITE_SIZE, SNAKE_SPRITE_SIZE},
-                   pos,
-                   WHITE);
+    DrawTextureRec(spritesheet, (Rectangle){type * SNAKE_SPRITE_SIZE, direction * SNAKE_SPRITE_SIZE, SNAKE_SPRITE_SIZE, SNAKE_SPRITE_SIZE}, pos, WHITE);
 }
 
 Pair movePos(Pair pos, u8 direction) {
@@ -208,9 +207,14 @@ Pair snakeDirection(SnakeDirection next, SnakeDirection current) {
     }
 }
 
-void snakeMove(Data *data, SnakeDirection direction) {
+void snakeMove(Data* data, SnakeDirection direction) {
     Pair newPlayerPos = movePos(data->playerPos, direction);
-    Cell *cell = getCell(data, newPlayerPos);
+    Cell* cell = getCell(data, newPlayerPos);
+
+    printf("Old player pos: (%d %d)\n", data->playerPos.x, data->playerPos.y);
+    printf("Direction: (%d)\n", direction);
+    printf("New player pos: (%d %d)\n", newPlayerPos.x, newPlayerPos.y);
+    printf("New snake cell: (%d)\n", cell->type);
 
     switch (cell->type) {
         // End game if crashed with own body
@@ -257,14 +261,16 @@ void snakeMove(Data *data, SnakeDirection direction) {
     data->playerPos = newPlayerPos;
 }
 
-// Board //
+#pragma endregion
 
-void resetBoard(Data *data) {
+#pragma region  // Board //
+
+void resetBoard(Data* data) {
     DynamicDirectionArrayClear(&data->snake);
 
     for (usize i = 0; i < BOARD_SIZE; ++i) { data->board[i] = (Cell){0}; }
-    Pair pos = {.x = (BOARD_X >> 1), .y = (BOARD_Y >> 1)};
-    Cell *cell;
+    Pair pos = {.x = (BOARD_X / 2), .y = (BOARD_Y / 2)};
+    Cell* cell;
 
     pos.y -= 1;
 
@@ -290,20 +296,35 @@ void resetBoard(Data *data) {
     cell->type = CELL_TYPE_SNAKE;
     cell->snake.type = SNAKE_TAIL;
     cell->snake.direction = SNAKE_UP;
+
+    printf("\n");
+    printf("DYNAMIC ARRAY ELEMS: %u\n", data->snake.length);
+    printf("DYNAMIC ARRAY SIZE: %u\n", data->snake.size);
+    printf("\n");
+
+    printf("\n");
+    printf(">> [START DIRECTIONS\n");
+    for_dynamic_array(u8, dir, data->snake) { printf(">> [ Direction: %hhu\n", dir); }
+    printf(">> [END DIRECTIONS\n");
+    printf("\n");
 }
 
 void drawCell(Vector2 pos, bool alterColor) { DrawRectangle(pos.x, pos.y, CELL_SIZE, CELL_SIZE, alterColor ? CELL_COLOR_1 : CELL_COLOR_2); }
 
-// Logic //
+#pragma endregion
 
-#define SCREEN_PADDING 10
+#pragma region  // Logic //
+
+#define SCREEN_PADDING 30
 #define WORLD_SIZE_X   ((BOARD_X * CELL_SIZE) + (SCREEN_PADDING << 1))
 #define WORLD_SIZE_Y   ((BOARD_Y * CELL_SIZE) + (SCREEN_PADDING << 1))
 
-void manageInputs(Data *data) {
-    InputResult *inputs = GreedyInputHandlerUpdate(&data->inputHandler).results;
+void manageGeneralInputs(Data* data) {
+    if (GreedyInputHandlerGetValue(data->inputHandler, INPUT_TOGGLE_FULLSCREEN).b) { ToggleFullscreen(); }
+}
 
-    if (inputs[INPUT_TOGGLE_FULLSCREEN].bool_v) { ToggleFullscreen(); }
+void manageMovementInputs(Data* data) {
+    InputResult* inputs = GreedyInputHandlerGetAllValues(data->inputHandler);
 
     data->deltaToMovement -= GetFrameTime();
     if (data->deltaToMovement <= 0) {
@@ -312,25 +333,26 @@ void manageInputs(Data *data) {
         SnakeDirection nextSnakeDirection = data->snake.elements[0];
 
         // Check input and do not allow to go backwards
-        if (inputs[INPUT_MOVE_DOWN].bool_v && nextSnakeDirection != SNAKE_DOWN) {
+        if (inputs[INPUT_MOVE_DOWN].b && nextSnakeDirection != SNAKE_DOWN) {
             snakeMove(data, SNAKE_DOWN);
-        } else if (inputs[INPUT_MOVE_LEFT].bool_v && nextSnakeDirection != SNAKE_LEFT) {
+        } else if (inputs[INPUT_MOVE_LEFT].b && nextSnakeDirection != SNAKE_LEFT) {
             snakeMove(data, SNAKE_LEFT);
-        } else if (inputs[INPUT_MOVE_UP].bool_v && nextSnakeDirection != SNAKE_UP) {
+        } else if (inputs[INPUT_MOVE_UP].b && nextSnakeDirection != SNAKE_UP) {
             snakeMove(data, SNAKE_UP);
-        } else if (inputs[INPUT_MOVE_RIGHT].bool_v && nextSnakeDirection != SNAKE_RIGHT) {
+        } else if (inputs[INPUT_MOVE_RIGHT].b && nextSnakeDirection != SNAKE_RIGHT) {
             snakeMove(data, SNAKE_RIGHT);
         } else {
+            printf("Invert snake direction %d\n", data->snake.elements[0]);
             snakeMove(data, InvertDirection(data->snake.elements[0]));
         }
     }
 }
 
-void generateFruit(Data *data) {
+void generateFruit(Data* data) {
     data->deltaToNewFruit -= GetFrameTime();
     if (data->deltaToNewFruit <= 0) {
         data->deltaToNewFruit = SECONDS_FOR_NEW_FRUIT - data->deltaToNewFruit;
-        Cell *cell;
+        Cell* cell;
         while ((cell = getCell(data, (Pair){.x = random(BOARD_X), .y = random(BOARD_Y)}))->type != CELL_TYPE_EMPTY) {}
         Pair fruit = createFruit();
         cell->type = CELL_TYPE_FRUIT;
@@ -371,7 +393,7 @@ void drawWorld(Data data) {
     EndDrawing();
 }
 
-void recalculateCamera(Data *data) {
+void recalculateCamera(Data* data) {
     u16 sw = GetScreenWidth();
     u16 sh = GetScreenHeight();
 
@@ -387,7 +409,7 @@ i32 main() {
 
     Data data = {0};
 
-    data.camera.target = (Vector2){(BOARD_X * CELL_SIZE) >> 1, (BOARD_Y * CELL_SIZE) >> 1};
+    data.camera.target = (Vector2){(BOARD_X * CELL_SIZE) / 2, (BOARD_Y * CELL_SIZE) / 2};
     data.camera.rotation = 0;
 
     DynamicDirectionArrayCreate(&data.snake);
@@ -422,12 +444,24 @@ i32 main() {
 
     while (!WindowShouldClose()) {
         recalculateCamera(&data);
+
+        GreedyInputHandlerUpdate(&data.inputHandler);
+
+        manageGeneralInputs(&data);
+
         if (!data.gameOver) {
             generateFruit(&data);
-            manageInputs(&data);
+            manageMovementInputs(&data);
         }
+
         drawWorld(data);
-        if (data.gameOver) { DrawText("GAME OVER", GetScreenWidth() >> 1, GetScreenHeight() >> 1, 24, WHITE); }
+
+        if (data.gameOver) {
+            // BeginDrawing();
+            // DrawText("GAME OVER", GetScreenWidth() / 2, GetScreenHeight() / 2, 24, WHITE);
+            // EndDrawing();
+            break;
+        }
     }
 
     GreedyInputHandlerDelete(&data.inputHandler);
@@ -437,3 +471,5 @@ i32 main() {
     UnloadTexture(data.fruitSpritesheet);
     UnloadTexture(data.snakeSpritesheet);
 }
+
+#pragma endregion

@@ -1,17 +1,16 @@
-#include "game_state.h"
-
 #include <stdlib.h>
 
-#include "debug.h"
-#include "entities.h"
-#include "extra_math.h"
-#include "files.h"
-#include "memory_utils.h"
-#include "raylib.h"
-#include "raymath.h"
-#include "types.h"
+#include "lifecycles/game_state.h"
+#include "debug/debug.h"
+#include "entities/entities.h"
+#include "utils/extra_math.h"
+#include "utils/files.h"
+#include "utils/memory_utils.h"
+#include "raylib/raylib.h"
+#include "raylib/raymath.h"
+#include "types/types.h"
 
-GameState *state = NULL;
+GameState* state = NULL;
 
 void GameStateInitialize(void) {
     if (state == NULL) { state = reserve(GameState); }
@@ -64,9 +63,8 @@ void GameStateUpdate(void) {
     f32 delta = GetFrameTime();
 
     state->time_delta_real = delta;
-    state->time_delta_simulation = state->time_speed_magnitude == 0
-                                       ? state->time_delta_real
-                                       : state->time_delta_real + (state->time_delta_real * state->time_speed_magnitude * 0.2f);
+    state->time_delta_simulation =
+        state->time_speed_magnitude == 0 ? state->time_delta_real : state->time_delta_real + (state->time_delta_real * state->time_speed_magnitude * 0.2f);
     state->time_elapsed += state->time_delta_simulation;
 }
 
@@ -94,8 +92,7 @@ bool GameStatePlayerAdd(void) {
             }
         }
 
-        state->players[count] =
-            PlayerCreate(device, count, SPACESHIP_FRIENDLY_BASE, Vector2Scale(Vector2From(GetScreenWidth(), GetScreenHeight()), 0.5f));
+        state->players[count] = PlayerCreate(device, count, SPACESHIP_FRIENDLY_BASE, Vector2Scale(Vector2From(GetScreenWidth(), GetScreenHeight()), 0.5f));
         state->game_over[count] = false;
 
         ++state->player_count;

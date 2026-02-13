@@ -2,7 +2,7 @@
 #ifndef __ACTIONS_H__
 #define __ACTIONS_H__
 
-#include "input-handler.h"
+#include "input/input-handler.h"
 
 // ----------------------------------------------------------------------------
 // ---- Actions ---------------------------------------------------------------

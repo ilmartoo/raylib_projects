@@ -1,7 +1,7 @@
-#include "input-handler.h"
-#include "rayconfig.h"
-#include "raylib.h"
-#include "types.h"
+#include "input/input-handler.h"
+#include "raylib/config.h"
+#include "raylib/raylib.h"
+#include "types/types.h"
 
 // Macro definitions //
 
@@ -21,9 +21,8 @@
 #define N_GAMEPAD_TRIGGER_ACTIONS      (2 * FLOAT_VARIATIONS)     // Number of gamepad axis actions
 #define N_GAMEPAD_TRIGGER_NORM_ACTIONS (2 * FLOAT_VARIATIONS)     // Number of gamepad axis actions
 #define N_GAMEPAD_JOYSTICK_ACTIONS     (4 * FLOAT_VARIATIONS)     // Number of gamepad axis actions
-#define N_GAMEPAD_ACTIONS                                                                    \
-    (N_GAMEPAD_BUTTON_ACTIONS + N_GAMEPAD_TRIGGER_ACTIONS + N_GAMEPAD_TRIGGER_NORM_ACTIONS + \
-     N_GAMEPAD_JOYSTICK_ACTIONS)  // Size of the gamepad actions array
+#define N_GAMEPAD_ACTIONS \
+    (N_GAMEPAD_BUTTON_ACTIONS + N_GAMEPAD_TRIGGER_ACTIONS + N_GAMEPAD_TRIGGER_NORM_ACTIONS + N_GAMEPAD_JOYSTICK_ACTIONS)  // Size of the gamepad actions array
 
 #define N_ACTIONS max(N_KEYBOARD_MOUSE_ACTIONS, N_GAMEPAD_ACTIONS)
 
@@ -268,7 +267,7 @@ void screenText(const char* text, u32 x, u32 y) { DrawTextEx(font, text, (Vector
 
 bool hasResults(InputResult results[], action_size size) {
     for (action_size i = 0; i < size; ++i) {
-        if (results[i].bool_v) { return true; }
+        if (results[i].b) { return true; }
     }
     return false;
 }
@@ -277,17 +276,13 @@ const char* concatBooleanVariationResults(const char* input_text, InputResult re
     return TextFormat("%*s [ %s%s%s]",
                       INPUT_TEXT_PADDING,
                       input_text,
-                      results[0].bool_v ? BOOLEAN_TEXTS[0] : "",
-                      results[1].bool_v ? BOOLEAN_TEXTS[1] : "",
-                      results[2].bool_v ? BOOLEAN_TEXTS[2] : "");
+                      results[0].b ? BOOLEAN_TEXTS[0] : "",
+                      results[1].b ? BOOLEAN_TEXTS[1] : "",
+                      results[2].b ? BOOLEAN_TEXTS[2] : "");
 }
 
 const char* concatFloatVariationResults(const char* input_text, InputResult results[FLOAT_VARIATIONS], u16 threshold, bool isFloat) {
-    return TextFormat("%*s [ Value %.3f, Threshold %.3f ]",
-                      INPUT_TEXT_PADDING,
-                      input_text,
-                      results[0].float_v,
-                      isFloat ? f16tof(threshold) : (f32)threshold);
+    return TextFormat("%*s [ Value %.3f, Threshold %.3f ]", INPUT_TEXT_PADDING, input_text, results[0].f, isFloat ? f16tof(threshold) : (f32)threshold);
 }
 
 void displayBoolValue(action_size* i, action_size limit, InputMap* mappings, InputResult* results, String (*textFn)(i32), u32* y) {
@@ -302,8 +297,7 @@ void displayBoolValue(action_size* i, action_size limit, InputMap* mappings, Inp
 void displayIntValue(action_size* i, action_size limit, InputMap* mappings, InputResult* results, String (*textFn)(i32), u32* y) {
     for (; *i < limit; *i += FLOAT_VARIATIONS) {
         if (hasResults(&results[*i], FLOAT_VARIATIONS)) {
-            screenText(concatFloatVariationResults(
-                           textFn(mappings[*i].data.movement.axis).str, &results[*i], mappings[*i].data.movement.threshold, false),
+            screenText(concatFloatVariationResults(textFn(mappings[*i].data.movement.axis).str, &results[*i], mappings[*i].data.movement.threshold, false),
                        INPUT_TEXT_POS.x,
                        *y);
             *y += INPUT_TEXT_SPACING;
@@ -314,10 +308,9 @@ void displayIntValue(action_size* i, action_size limit, InputMap* mappings, Inpu
 void displayFloatValue(action_size* i, action_size limit, InputMap* mappings, InputResult* results, String (*textFn)(i32), u32* y) {
     for (; *i < limit; *i += FLOAT_VARIATIONS) {
         if (hasResults(&results[*i], FLOAT_VARIATIONS)) {
-            screenText(
-                concatFloatVariationResults(textFn(mappings[*i].data.axis.type).str, &results[*i], mappings[*i].data.axis.threshold, true),
-                INPUT_TEXT_POS.x,
-                *y);
+            screenText(concatFloatVariationResults(textFn(mappings[*i].data.axis.type).str, &results[*i], mappings[*i].data.axis.threshold, true),
+                       INPUT_TEXT_POS.x,
+                       *y);
             *y += INPUT_TEXT_SPACING;
         }
     }

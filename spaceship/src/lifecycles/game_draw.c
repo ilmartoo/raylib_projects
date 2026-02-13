@@ -1,12 +1,11 @@
-#include "entities.h"
-#include "game_debug.h"
-#include "game_lifecycle.h"
-#include "game_state.h"
-#include "object_pool.h"
+#include "entities/entities.h"
+#include "debug/game_debug.h"
+#include "lifecycles/game_lifecycle.h"
+#include "lifecycles/game_state.h"
+#include "types/object_pool.h"
 
 // Game draw
-void GameDraw(void)
-{
+void GameDraw(void) {
     /* Start */ BeginDrawing();
 
     ClearBackground(BLANK);

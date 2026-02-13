@@ -2,7 +2,7 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
-#include "types.h"
+#include "types/types.h"
 
 /**
  * Initialize of the game.
@@ -29,4 +29,4 @@ void GameDraw(void);
  */
 void GameClear(void);
 
-#endif // ENGINE_H
+#endif  // ENGINE_H

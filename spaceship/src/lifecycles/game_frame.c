@@ -1,10 +1,10 @@
-#include "collisions.h"
-#include "extra_math.h"
-#include "game_debug.h"
-#include "game_lifecycle.h"
-#include "game_state.h"
-#include "object_pool.h"
-#include "raymath.h"
+#include "entities/collisions.h"
+#include "utils/extra_math.h"
+#include "debug/game_debug.h"
+#include "lifecycles/game_lifecycle.h"
+#include "lifecycles/game_state.h"
+#include "types/object_pool.h"
+#include "raylib/raymath.h"
 
 void GameUpdatePlayers(void);
 void GameUpdateProyectiles(void);
@@ -41,7 +41,7 @@ void GameFrame(void) {
 // Update players
 void GameUpdatePlayers(void) {
     ForEachPlayerRef(iter) {
-        Player *player = iter.player;
+        Player* player = iter.player;
         if (!GameStateIsPlayerGameOver(*player)) {
             PlayerMove(player);
             PlayerAim(player);
@@ -53,7 +53,7 @@ void GameUpdatePlayers(void) {
 
 // Update projectiles
 void GameUpdateProyectiles(void) {
-    ObjectPool *pool;
+    ObjectPool* pool;
     ForEachObjectPoolObject(pool = &state->projectiles_players, Projectile, iter) {
         if (!ProjectileMove(iter.object)) { ObjectPoolObjectRemove(pool, iter.index); }
     }
@@ -65,14 +65,13 @@ void GameUpdateProyectiles(void) {
 
 // Game collision checking
 void GameCheckCollisions(void) {
-    ObjectPool *enemies = &state->enemies, *projectiles_enemies = &state->projectiles_enemies,
-               *projectiles_players = &state->projectiles_players;
+    ObjectPool *enemies = &state->enemies, *projectiles_enemies = &state->projectiles_enemies, *projectiles_players = &state->projectiles_players;
 
     ForEachObjectPoolObject(projectiles_enemies, Projectile, iter_projectile) {
         bool collided = false;
         Projectile projectile = *iter_projectile.object;
         ForEachPlayerRef(iter_player) {
-            Player *player = iter_player.player;
+            Player* player = iter_player.player;
             if (CheckEntityCollision(player->entity, projectile.entity)) {
                 PlayerDamage(player, projectile.damage);
                 collided = true;
@@ -85,7 +84,7 @@ void GameCheckCollisions(void) {
         bool collided = false;
         Projectile projectile = *iter_projectile.object;
         ForEachObjectPoolObject(enemies, Enemy, iter_enemy) {
-            Enemy *enemy = iter_enemy.object;
+            Enemy* enemy = iter_enemy.object;
             if (CheckEntityCollision(enemy->entity, projectile.entity)) {
                 if (EnemyDamage(enemy, projectile.damage)) { ObjectPoolObjectRemove(enemies, iter_enemy.index); }
                 collided = true;
@@ -110,10 +109,8 @@ void GameDebugGenerateEnemiesAroundPlayer(void) {
         f32 rotation = Deg2Rad(GetRandomValue(0, MAX_DEGS));
         Vector2 pos = Vector2Add(player_center, Vector2Scale(Vector2UnitCirclePoint(rotation), ENEMIES_CREATED_AT_START_SPACING));
 
-        EnemyCreate(i & 1 ? SPACESHIP_ENEMY_UPGRADED : SPACESHIP_ENEMY_BASE,
-                    pos,
-                    ENEMY_MOVEMENT_SPEED,
-                    Vector2AngleFromXAxis(Vector2Subtract(player_center, pos)));
+        EnemyCreate(
+            i & 1 ? SPACESHIP_ENEMY_UPGRADED : SPACESHIP_ENEMY_BASE, pos, ENEMY_MOVEMENT_SPEED, Vector2AngleFromXAxis(Vector2Subtract(player_center, pos)));
     }
 }
 
@@ -145,9 +142,7 @@ void TestingInput(void) {
     bool decrease_speed = IsKeyPressed(KEY_PAGE_DOWN);
     if (increase_speed != decrease_speed) {
         if (increase_speed && state->time_speed_magnitude < GAME_STATE_TIME_SPEED_MAGNITUDE_ABSOLUTE_MAX) { ++state->time_speed_magnitude; }
-        if (decrease_speed && state->time_speed_magnitude > -GAME_STATE_TIME_SPEED_MAGNITUDE_ABSOLUTE_MAX) {
-            --state->time_speed_magnitude;
-        }
+        if (decrease_speed && state->time_speed_magnitude > -GAME_STATE_TIME_SPEED_MAGNITUDE_ABSOLUTE_MAX) { --state->time_speed_magnitude; }
     }
 }
 

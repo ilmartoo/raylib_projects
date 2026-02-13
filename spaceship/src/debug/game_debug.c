@@ -1,16 +1,15 @@
 #ifdef DEBUG
 
-#include "game_debug.h"
-#include "debug_panel.h"
-#include "game_state.h"
+#include "debug/game_debug.h"
+#include "debug/debug_panel.h"
+#include "lifecycles/game_state.h"
 
-DebugPanel *timings_panel;
-DebugPanel *entities_panel;
-DebugPanel *inputs_panel;
+DebugPanel* timings_panel;
+DebugPanel* entities_panel;
+DebugPanel* inputs_panel;
 
 // Debug panels initialization
-void GameDebugInitialize(void)
-{
+void GameDebugInitialize(void) {
     timings_panel = DebugPanelCreate(DARKGREEN, state->font);
     entities_panel = DebugPanelCreate(GREEN, state->font);
     inputs_panel = DebugPanelCreate(ORANGE, state->font);
@@ -20,8 +19,7 @@ void GameDebugInitialize(void)
 void GameDebugInput(void) { /* Empty for now */ }
 
 // Debug update
-void GameDebugUpdate(void)
-{
+void GameDebugUpdate(void) {
     DebugPanelClean(timings_panel);
     DebugPanelClean(entities_panel);
     DebugPanelClean(inputs_panel);
@@ -31,8 +29,7 @@ void GameDebugUpdate(void)
     DebugPanelAddEntry(timings_panel, TextFormat("%d%% speed", 100 + 20 * state->time_speed_magnitude));
     DebugPanelAddEntry(timings_panel, TextFormat("Game %s", state->time_running ? "running" : "paused"));
 
-    ForEachPlayerVal(iter)
-    {
+    ForEachPlayerVal(iter) {
         DebugPanelAddTitle(entities_panel, TextFormat("PLAYER %d", iter.index));
         DebugPanelAddEntry(entities_panel, TextFormat("Rotation: %.2f deg", Rad2Deg(iter.player.entity.rotation)));
 
@@ -65,19 +62,17 @@ void GameDebugUpdate(void)
 }
 
 // Debug draw
-void GameDebugDraw(void)
-{
+void GameDebugDraw(void) {
     DebugPanelDraw(*timings_panel, DEBUG_PANEL_TIMINGS_POSITION);
     DebugPanelDraw(*entities_panel, DEBUG_PANEL_ENTITIES_POSITION);
     DebugPanelDraw(*inputs_panel, DEBUG_PANEL_INPUTS_POSITION);
 }
 
 // Debug clear
-void GameDebugClear(void)
-{
+void GameDebugClear(void) {
     DebugPanelDelete(timings_panel);
     DebugPanelDelete(entities_panel);
     DebugPanelDelete(inputs_panel);
 }
 
-#endif // DEBUG
+#endif  // DEBUG

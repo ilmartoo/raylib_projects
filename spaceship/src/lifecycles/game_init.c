@@ -1,11 +1,11 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "files.h"
-#include "game_debug.h"
-#include "game_lifecycle.h"
-#include "game_state.h"
-#include "raylib.h"
+#include "utils/files.h"
+#include "debug/game_debug.h"
+#include "lifecycles/game_lifecycle.h"
+#include "lifecycles/game_state.h"
+#include "raylib/raylib.h"
 
 #define GAME_TITLE     "Spaceship"
 #define GAME_ICON_FILE "spaceship-icon.png"
@@ -14,8 +14,7 @@ void GameSetupWindow(void);
 void GameInitializeEntities(void);
 
 // Game initialization
-void GameInitialize(void)
-{
+void GameInitialize(void) {
     SetRandomSeed((u32)(time(NULL) % UINT_MAX));
 
     GameSetupWindow();
@@ -29,8 +28,7 @@ void GameInitialize(void)
 }
 
 // Window setup
-void GameSetupWindow(void)
-{
+void GameSetupWindow(void) {
     i32 monitor_id = GetCurrentMonitor();
     Image icon = LoadImage(path_image(GAME_ICON_FILE));
 

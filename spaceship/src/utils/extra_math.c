@@ -1,10 +1,10 @@
 #include <math.h>
+#include <float.h>
 
-#include "extra_math.h"
-#include "float.h"
-#include "raylib.h"
-#include "raymath.h"
-#include "types.h"
+#include "utils/extra_math.h"
+#include "raylib/raylib.h"
+#include "raylib/raymath.h"
+#include "types/types.h"
 
 bool CeilNormalizedValue(f32 value) { return value > 0 ? 1 : 0; }
 
@@ -16,10 +16,7 @@ Vector2 Vector2From(f32 x, f32 y) { return (Vector2){x, y}; }
 
 Vector2 Vector2UnitCirclePoint(f32 rads) { return (Vector2){cosf(rads), sinf(rads)}; }
 
-Vector2 Vector2RotateFrom(Vector2 v, Vector2 center, f32 rads)
-{
-    return Vector2Add(center, Vector2Rotate(Vector2Subtract(v, center), rads));
-}
+Vector2 Vector2RotateFrom(Vector2 v, Vector2 center, f32 rads) { return Vector2Add(center, Vector2Rotate(Vector2Subtract(v, center), rads)); }
 
 f32 Vector2AngleFromXAxis(Vector2 v) { return Vector2Angle(Vector2From(1, 0), v); }
 
