@@ -2,6 +2,7 @@
 #include "raylib/config.h"
 #include "raylib/raylib.h"
 #include "raylib/raymath.h"
+#include "types/float16.h"
 #include "types/types.h"
 
 // Check if the input method is valid for the specified input device
@@ -191,9 +192,9 @@ void GreedyInputHandlerDelete(GreedyInputHandler* handler) { free(handler->keybo
 
 bool GreedyInputHandlerMapSet(GreedyInputHandler* handler, InputDeviceID device, InputActionID action_id, const InputMap map) {
     if (device >= 0) {
-        return InputHandlerSet(INPUT_DEVICE_ID_FIRST_GAMEPAD, handler->gamepad_mappings, handler->size, map);
+        return InputHandlerSet(INPUT_DEVICE_ID_FIRST_GAMEPAD, handler->gamepad_mappings, action_id, map);
     } else if (device == INPUT_DEVICE_ID_KEYBOARD_AND_MOUSE) {
-        return InputHandlerSet(INPUT_DEVICE_ID_KEYBOARD_AND_MOUSE, handler->keyboard_mouse_mappings, handler->size, map);
+        return InputHandlerSet(INPUT_DEVICE_ID_KEYBOARD_AND_MOUSE, handler->keyboard_mouse_mappings, action_id, map);
     }
     return false;
 }

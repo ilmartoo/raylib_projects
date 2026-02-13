@@ -13,6 +13,7 @@ void nob_base(Nob_Cmd* cmd) {
     nob_cmd_append(cmd, "-I" SRC_FOLDER);
     nob_cc_inputs(cmd,
                   SRC_FOLDER "device-tester.c",       // entrypoint
+                  SRC_FOLDER "types/float16.c",       // float16 implementation
                   SRC_FOLDER "input/input-handler.c"  // input handler
     );
     nob_cmd_append(cmd, "-L" LIB_FOLDER, "-lraylib", "-lopengl32", "-lgdi32", "-lwinmm", "-lm");
@@ -32,7 +33,7 @@ int main(int argc, char** argv) {
     if (!nob_cmd_run(&cmd)) return 1;
 
     nob_base(&cmd);
-    nob_cmd_append(&cmd, "-g -DDEBUG");
+    nob_cmd_append(&cmd, "-g", "-DDEBUG");
     nob_cc_output(&cmd, BUILD_FOLDER EXECUTABLE_NAME "_debug");
 
     if (!nob_cmd_run(&cmd)) return 1;

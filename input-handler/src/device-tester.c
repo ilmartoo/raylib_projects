@@ -57,7 +57,7 @@ typedef struct {
 
 Font font = {0};
 
-const char BOOLEAN_TEXTS[BOOLEAN_VARIATIONS][9] = {"Pressed ", "Released ", "Down "};
+const char BOOLEAN_TEXTS[BOOLEAN_VARIATIONS][10] = {"Pressed ", "Released ", "Down "};
 
 // Function definitions //
 
@@ -266,8 +266,8 @@ String textGamepadJoystick(i32 joystick) {
 void screenText(const char* text, u32 x, u32 y) { DrawTextEx(font, text, (Vector2){x, y}, FONT_SIZE, 1, FONT_COLOR); }
 
 bool hasResults(InputResult results[], action_size size) {
-    for (action_size i = 0; i < size; ++i) {
-        if (results[i].b) { return true; }
+    for (action_size action_idx = 0; action_idx < size; ++action_idx) {
+        if (results[action_idx].b) { return true; }
     }
     return false;
 }
@@ -285,19 +285,20 @@ const char* concatFloatVariationResults(const char* input_text, InputResult resu
     return TextFormat("%*s [ Value %.3f, Threshold %.3f ]", INPUT_TEXT_PADDING, input_text, results[0].f, isFloat ? f16tof(threshold) : (f32)threshold);
 }
 
-void displayBoolValue(action_size* i, action_size limit, InputMap* mappings, InputResult* results, String (*textFn)(i32), u32* y) {
-    for (; *i < limit; *i += BOOLEAN_VARIATIONS) {
-        if (hasResults(&results[*i], BOOLEAN_VARIATIONS)) {
-            screenText(concatBooleanVariationResults(textFn(mappings[*i].data.key).str, &results[*i]), INPUT_TEXT_POS.x, *y);
+void displayBoolValue(action_size* action_idx, action_size limit, InputMap* mappings, InputResult* results, String (*textFn)(i32), u32* y) {
+    for (; *action_idx < limit; *action_idx += BOOLEAN_VARIATIONS) {
+        if (hasResults(&results[*action_idx], BOOLEAN_VARIATIONS)) {
+            screenText(concatBooleanVariationResults(textFn(mappings[*action_idx].data.key).str, &results[*action_idx]), INPUT_TEXT_POS.x, *y);
             *y += INPUT_TEXT_SPACING;
         }
     }
 }
 
-void displayIntValue(action_size* i, action_size limit, InputMap* mappings, InputResult* results, String (*textFn)(i32), u32* y) {
-    for (; *i < limit; *i += FLOAT_VARIATIONS) {
-        if (hasResults(&results[*i], FLOAT_VARIATIONS)) {
-            screenText(concatFloatVariationResults(textFn(mappings[*i].data.movement.axis).str, &results[*i], mappings[*i].data.movement.threshold, false),
+void displayIntValue(action_size* action_idx, action_size limit, InputMap* mappings, InputResult* results, String (*textFn)(i32), u32* y) {
+    for (; *action_idx < limit; *action_idx += FLOAT_VARIATIONS) {
+        if (hasResults(&results[*action_idx], FLOAT_VARIATIONS)) {
+            screenText(concatFloatVariationResults(
+                           textFn(mappings[*action_idx].data.movement.axis).str, &results[*action_idx], mappings[*action_idx].data.movement.threshold, false),
                        INPUT_TEXT_POS.x,
                        *y);
             *y += INPUT_TEXT_SPACING;
@@ -305,10 +306,11 @@ void displayIntValue(action_size* i, action_size limit, InputMap* mappings, Inpu
     }
 }
 
-void displayFloatValue(action_size* i, action_size limit, InputMap* mappings, InputResult* results, String (*textFn)(i32), u32* y) {
-    for (; *i < limit; *i += FLOAT_VARIATIONS) {
-        if (hasResults(&results[*i], FLOAT_VARIATIONS)) {
-            screenText(concatFloatVariationResults(textFn(mappings[*i].data.axis.type).str, &results[*i], mappings[*i].data.axis.threshold, true),
+void displayFloatValue(action_size* action_idx, action_size limit, InputMap* mappings, InputResult* results, String (*textFn)(i32), u32* y) {
+    for (; *action_idx < limit; *action_idx += FLOAT_VARIATIONS) {
+        if (hasResults(&results[*action_idx], FLOAT_VARIATIONS)) {
+            screenText(concatFloatVariationResults(
+                           textFn(mappings[*action_idx].data.joystick.type).str, &results[*action_idx], mappings[*action_idx].data.joystick.threshold, true),
                        INPUT_TEXT_POS.x,
                        *y);
             *y += INPUT_TEXT_SPACING;
@@ -319,40 +321,40 @@ void displayFloatValue(action_size* i, action_size limit, InputMap* mappings, In
 void displayDeviceKM(InputMap mappings[N_ACTIONS], InputResult results[N_ACTIONS]) {
     u32 y = INPUT_TEXT_POS.y;
 
-    action_size limit = 0, i = 0;
+    action_size limit = 0, action_idx = 0;
 
     limit += N_KEYBOARD_KEY_ACTIONS;
-    displayBoolValue(&i, limit, mappings, results, textKeyboardKey, &y);
+    displayBoolValue(&action_idx, limit, mappings, results, textKeyboardKey, &y);
 
     limit += N_MOUSE_BUTTON_ACTIONS;
-    displayBoolValue(&i, limit, mappings, results, textMouseButton, &y);
+    displayBoolValue(&action_idx, limit, mappings, results, textMouseButton, &y);
 
     limit += N_MOUSE_POSITION_ACTIONS;
-    displayIntValue(&i, limit, mappings, results, textMousePosition, &y);
+    displayIntValue(&action_idx, limit, mappings, results, textMousePosition, &y);
 
     limit += N_MOUSE_MOVEMENT_ACTIONS;
-    displayIntValue(&i, limit, mappings, results, textMouseMovement, &y);
+    displayIntValue(&action_idx, limit, mappings, results, textMouseMovement, &y);
 
     limit += N_MOUSE_SCROLL_ACTIONS;
-    displayIntValue(&i, limit, mappings, results, textMouseScroll, &y);
+    displayIntValue(&action_idx, limit, mappings, results, textMouseScroll, &y);
 }
 
 void displayDeviceGP(InputMap mappings[N_ACTIONS], InputResult results[N_ACTIONS]) {
     u32 y = INPUT_TEXT_POS.y;
 
-    action_size limit = 0, i;
+    action_size action_idx = 0, limit = 0;
 
     limit += N_GAMEPAD_BUTTON_ACTIONS;
-    displayBoolValue(&i, limit, mappings, results, textGamepadButton, &y);
+    displayBoolValue(&action_idx, limit, mappings, results, textGamepadButton, &y);
 
     limit += N_GAMEPAD_TRIGGER_ACTIONS;
-    displayFloatValue(&i, limit, mappings, results, textGamepadTrigger, &y);
+    displayFloatValue(&action_idx, limit, mappings, results, textGamepadTrigger, &y);
 
     limit += N_GAMEPAD_TRIGGER_NORM_ACTIONS;
-    displayFloatValue(&i, limit, mappings, results, textGamepadTriggerNormalized, &y);
+    displayFloatValue(&action_idx, limit, mappings, results, textGamepadTriggerNormalized, &y);
 
     limit += N_GAMEPAD_JOYSTICK_ACTIONS;
-    displayFloatValue(&i, limit, mappings, results, textGamepadJoystick, &y);
+    displayFloatValue(&action_idx, limit, mappings, results, textGamepadJoystick, &y);
 }
 
 void displayGreedyInputHandler(GreedyInputHandler handler) {
@@ -737,13 +739,13 @@ i32 main(void) {
 
         // Mouse movments //
 
-        MAP_MOUSE_POSITION_T(MOUSE_AXIS_X, MOUSE_MOVEMENT_THRESHOLD),
-        MAP_MOUSE_POSITION_T(MOUSE_AXIS_Y, MOUSE_MOVEMENT_THRESHOLD),
+        MAP_MOUSE_POSITION_THRESHOLD(MOUSE_AXIS_X, MOUSE_MOVEMENT_THRESHOLD),
+        MAP_MOUSE_POSITION_THRESHOLD(MOUSE_AXIS_Y, MOUSE_MOVEMENT_THRESHOLD),
 
-        MAP_MOUSE_MOVEMENT_T(MOUSE_AXIS_X, MOUSE_MOVEMENT_THRESHOLD),
-        MAP_MOUSE_MOVEMENT_T(MOUSE_AXIS_Y, MOUSE_MOVEMENT_THRESHOLD),
+        MAP_MOUSE_MOVEMENT_THRESHOLD(MOUSE_AXIS_X, MOUSE_MOVEMENT_THRESHOLD),
+        MAP_MOUSE_MOVEMENT_THRESHOLD(MOUSE_AXIS_Y, MOUSE_MOVEMENT_THRESHOLD),
 
-        MAP_MOUSE_SCROLL_T(MOUSE_SCROLL_WHEEL, MOUSE_SCROLL_THRESHOLD),
+        MAP_MOUSE_SCROLL_THRESHOLD(MOUSE_SCROLL_WHEEL, MOUSE_SCROLL_THRESHOLD),
     };
     InputMap gp_maps[N_ACTIONS] = {
         // Gamepad buttons //
@@ -805,14 +807,14 @@ i32 main(void) {
 
         // Gamepad axis //
 
-        MAP_GAMEPAD_TRIGGER_T(GAMEPAD_TRIGGER_LEFT, TRIGGER_THRESHOLD),
-        MAP_GAMEPAD_TRIGGER_T(GAMEPAD_TRIGGER_RIGHT, TRIGGER_THRESHOLD),
-        MAP_GAMEPAD_TRIGGER_NORM_T(GAMEPAD_TRIGGER_LEFT, TRIGGER_NORM_THRESHOLD),
-        MAP_GAMEPAD_TRIGGER_NORM_T(GAMEPAD_TRIGGER_RIGHT, TRIGGER_NORM_THRESHOLD),
-        MAP_GAMEPAD_JOYSTICK_T(GAMEPAD_JOYSTICK_LEFT_X, JOYSTICK_THRESHOLD),
-        MAP_GAMEPAD_JOYSTICK_T(GAMEPAD_JOYSTICK_LEFT_Y, JOYSTICK_THRESHOLD),
-        MAP_GAMEPAD_JOYSTICK_T(GAMEPAD_JOYSTICK_RIGHT_X, JOYSTICK_THRESHOLD),
-        MAP_GAMEPAD_JOYSTICK_T(GAMEPAD_JOYSTICK_RIGHT_Y, JOYSTICK_THRESHOLD),
+        MAP_GAMEPAD_TRIGGER_THRESHOLD(GAMEPAD_TRIGGER_LEFT, TRIGGER_THRESHOLD),
+        MAP_GAMEPAD_TRIGGER_THRESHOLD(GAMEPAD_TRIGGER_RIGHT, TRIGGER_THRESHOLD),
+        MAP_GAMEPAD_TRIGGER_NORM_THRESHOLD(GAMEPAD_TRIGGER_LEFT, TRIGGER_NORM_THRESHOLD),
+        MAP_GAMEPAD_TRIGGER_NORM_THRESHOLD(GAMEPAD_TRIGGER_RIGHT, TRIGGER_NORM_THRESHOLD),
+        MAP_GAMEPAD_JOYSTICK_THRESHOLD(GAMEPAD_JOYSTICK_LEFT_X, AXIS_RANGE_ALL, JOYSTICK_THRESHOLD),
+        MAP_GAMEPAD_JOYSTICK_THRESHOLD(GAMEPAD_JOYSTICK_LEFT_Y, AXIS_RANGE_ALL, JOYSTICK_THRESHOLD),
+        MAP_GAMEPAD_JOYSTICK_THRESHOLD(GAMEPAD_JOYSTICK_RIGHT_X, AXIS_RANGE_ALL, JOYSTICK_THRESHOLD),
+        MAP_GAMEPAD_JOYSTICK_THRESHOLD(GAMEPAD_JOYSTICK_RIGHT_Y, AXIS_RANGE_ALL, JOYSTICK_THRESHOLD),
 
         // Zero'd the rest of the array //
     };

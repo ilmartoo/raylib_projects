@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     if (!nob_cmd_run(&cmd)) return 1;
 
     nob_base(&cmd);
-    nob_cmd_append(&cmd, "-g -DDEBUG");
+    nob_cmd_append(&cmd, "-g", "-DDEBUG");
     nob_cc_output(&cmd, BUILD_FOLDER EXECUTABLE_NAME "_debug");
 
     if (!nob_cmd_run(&cmd)) return 1;

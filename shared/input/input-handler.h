@@ -2,10 +2,10 @@
 #ifndef __INPUTS_H__
 #define __INPUTS_H__
 
-#include "../raylib/config.h"  // Raylib configurations
-#include "../raylib/raylib.h"  // Raylib library
-#include "../types/float16.h"  // IEEE 754 half-precision floating-point
-#include "../types/types.h"    // Ilmarto's types
+#include "raylib/config.h"  // Raylib configurations
+#include "raylib/raylib.h"  // Raylib library
+#include "types/float16.h"  // IEEE 754 half-precision floating-point
+#include "types/types.h"    // Ilmarto's types
 
 // ----------------------------------------------------------------------------
 // ---- Input Devices and Methods ---------------------------------------------
@@ -30,9 +30,7 @@ typedef enum {
     INPUT_DEVICE_STATE_MISSING,                   // The active device has gone missing
     INPUT_DEVICE_STATE_CHANGE_IDLE_2_ACTIVE,      // The active device was changed because it was idle and other was being used
     INPUT_DEVICE_STATE_CHANGE_MISSING_2_ACTIVE,   // The active device was changed because it went missing and other device was being used
-    INPUT_DEVICE_STATE_CHANGE_MISSING_2_DEFAULT,  // The active device was changed because it went missing, so the default device was
-                                                  // selected
-
+    INPUT_DEVICE_STATE_CHANGE_MISSING_2_DEFAULT,  // The active device was changed because it went missing, so the default device was selected
 } InputDeviceState;
 
 // Method of input to associate an input id to the correct key, mouse position, button, trigger or joystick:

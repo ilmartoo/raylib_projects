@@ -70,7 +70,8 @@ int32_t f16toi(half h) {
 // Single-precision floating point transformations //
 
 half ftof16(float f) {
-    uint32_t bits = *(uint32_t*)&f;
+    void* bits_ptr = &f;
+    uint32_t bits = *(uint32_t*)bits_ptr;
     uint16_t sign = (bits >> 16) & 0x8000;
     uint32_t exp = (bits >> 23) & 0xFF;
     uint32_t mant = bits & 0x7FFFFF;
@@ -121,7 +122,8 @@ float f16tof(half h) {
     if (exp == 0) {
         if (mant == 0) {
             // Zero
-            return *(float*)&sign;
+            void* sign_ptr = &sign;
+            return *(float*)sign_ptr;
         } else {
             // Subnormal number
             uint32_t shift = 0;
@@ -133,7 +135,8 @@ float f16tof(half h) {
             exp = 1;
             exp = 127 - 15 - shift;  // Adjust exponent for float32
             uint32_t fbits = sign | (exp << 23) | (mant << 13);
-            return *(float*)&fbits;
+            void* fbits_ptr = &fbits;
+            return *(float*)fbits_ptr;
         }
     } else if (exp == 0x1F) {
         // Inf or NaN
@@ -144,7 +147,8 @@ float f16tof(half h) {
     // Normalized float16 to float32
     uint32_t fexp = exp + (127 - 15);
     uint32_t fbits = sign | (fexp << 23) | (mant << 13);
-    return *(float*)&fbits;
+    void* fbits_ptr = &fbits;
+    return *(float*)fbits_ptr;
 }
 
 // Boolean operations //
