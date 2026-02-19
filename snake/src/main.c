@@ -19,21 +19,24 @@
 #define SNAKE_DIRECTIONS  4
 #define SNAKE_SPRITE_SIZE 16
 
-#define BOARD_X 30
-#define BOARD_Y 20
+#define BOARD_X 15
+#define BOARD_Y 14
 
 #define SECONDS_FOR_SNAKE_MOVE 0.15F
 #define SECONDS_FOR_NEW_FRUIT  5
 
-#define CELL_SIZE                    16
-#define CELL_COLOR_1                 ((Color){40, 40, 40, 255})
-#define CELL_COLOR_2                 ((Color){30, 30, 30, 255})
-#define CELL_SNAKE_SIZE              10
-#define CELL_SNAKE_BORDER_SIZE       12
-#define CELL_SNAKE_COLOR             LIME
-#define CELL_SNAKE_BORDER_COLOR      GREEN
-#define CELL_SNAKE_HEAD_BORDER_COLOR RED
-#define CELL_SNAKE_TAIL_BORDER_COLOR YELLOW
+#define CELL_SIZE    16
+#define CELL_COLOR_1 ((Color){40, 40, 40, 255})
+#define CELL_COLOR_2 ((Color){30, 30, 30, 255})
+
+#define SNAKE_SIZE              10
+#define SNAKE_BORDER_SIZE       12
+#define SNAKE_COLOR             LIME
+#define SNAKE_BORDER_COLOR      GREEN
+#define SNAKE_HEAD_BORDER_COLOR RED
+#define SNAKE_TAIL_BORDER_COLOR YELLOW
+
+#define FRUIT_SIZE 12
 
 typedef enum {
     FRUIT_APPLE_RED = 0,
@@ -135,6 +138,7 @@ typedef struct {
     } deltas;
 
     struct {
+        u16 fruits;
         u16 points;
         bool gameOver;
     } state;
@@ -178,7 +182,11 @@ U8Pair createFruit() { return (U8Pair){.x = random(FRUIT_TYPES), .y = random(FRU
 void drawFruit(Texture2D spritesheet, u8 fruit, u8 variation, Vector2 pos) {
     if (fruit >= FRUIT_TYPES) { fruit %= FRUIT_TYPES; }
     if (variation >= FRUIT_VARIATIONS) { variation %= FRUIT_VARIATIONS; }
-    DrawTextureRec(spritesheet, (Rectangle){fruit * FRUIT_SPRITE_SIZE, variation * FRUIT_SPRITE_SIZE, FRUIT_SPRITE_SIZE, FRUIT_SPRITE_SIZE}, pos, WHITE);
+
+    u8 cellOffset = (CELL_SIZE - FRUIT_SIZE) / 2;
+    Vector2 drawPos = Vector2AddValue(pos, cellOffset);
+
+    DrawTextureRec(spritesheet, (Rectangle){fruit * FRUIT_SPRITE_SIZE, variation * FRUIT_SPRITE_SIZE, FRUIT_SIZE, FRUIT_SIZE}, drawPos, WHITE);
 }
 
 void generateFruit(Data* data) {
@@ -189,6 +197,8 @@ void generateFruit(Data* data) {
     cell->type = CELL_TYPE_FRUIT;
     cell->fruit.type = fruit.x;
     cell->fruit.variation = fruit.y;
+
+    ++data->state.fruits;
 }
 
 void checkGenerateFruit(Data* data) {
@@ -204,13 +214,13 @@ void checkGenerateFruit(Data* data) {
 #pragma region  // Snake //
 
 void drawSnake(Vector2 pos, bool head, bool tail) {
-    u8 borderOffset = (CELL_SIZE - CELL_SNAKE_BORDER_SIZE) / 2;
-    u8 cellOffset = (CELL_SIZE - CELL_SNAKE_SIZE) / 2;
+    u8 borderOffset = (CELL_SIZE - SNAKE_BORDER_SIZE) / 2;
+    u8 cellOffset = (CELL_SIZE - SNAKE_SIZE) / 2;
 
-    Color borderColor = head ? CELL_SNAKE_HEAD_BORDER_COLOR : tail ? CELL_SNAKE_TAIL_BORDER_COLOR : CELL_SNAKE_BORDER_COLOR;
+    Color borderColor = head ? SNAKE_HEAD_BORDER_COLOR : tail ? SNAKE_TAIL_BORDER_COLOR : SNAKE_BORDER_COLOR;
 
-    DrawRectangle(pos.x + borderOffset, pos.y + borderOffset, CELL_SNAKE_BORDER_SIZE, CELL_SNAKE_BORDER_SIZE, borderColor);
-    DrawRectangle(pos.x + cellOffset, pos.y + cellOffset, CELL_SNAKE_SIZE, CELL_SNAKE_SIZE, CELL_SNAKE_COLOR);
+    DrawRectangle(pos.x + borderOffset, pos.y + borderOffset, SNAKE_BORDER_SIZE, SNAKE_BORDER_SIZE, borderColor);
+    DrawRectangle(pos.x + cellOffset, pos.y + cellOffset, SNAKE_SIZE, SNAKE_SIZE, SNAKE_COLOR);
 }
 
 U8Pair movePos(U8Pair pos, Direction direction) {
@@ -236,7 +246,9 @@ void snakeMove(Data* data, Direction direction) {
         // Fruit eated > add points and generate fruit
         if (cell->type == CELL_TYPE_FRUIT) {
             data->state.points += 1;
-            generateFruit(data);
+            --data->state.fruits;
+
+            if (data->state.fruits == 0) { generateFruit(data); }
         }
         // Basic movement > remove last snake cell
         else {
